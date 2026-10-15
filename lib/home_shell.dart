@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+
 import 'config_page.dart';
 import 'inicio_page.dart';
 import 'mapa_page.dart';
@@ -25,24 +26,42 @@ class _HomeShellState extends State<HomeShell> {
       const ConfigPage(),
     ];
     return Scaffold(
-      appBar: AppBar(
-        title: const Text('Rutix'),
-        actions: [
-          IconButton(
-            icon: const Icon(Icons.settings),
-            onPressed: () => _ir(3),
-          ),
-        ],
-      ),
+      // El mapa dibuja su propio encabezado sobre el mapa (diseño Figma).
+      appBar: _indice == 2
+          ? null
+          : AppBar(
+              title: const Text('Rutix'),
+              actions: [
+                IconButton(
+                  icon: const Icon(Icons.settings),
+                  onPressed: () => _ir(3),
+                ),
+              ],
+            ),
       body: IndexedStack(index: _indice, children: paginas),
       bottomNavigationBar: NavigationBar(
         selectedIndex: _indice,
         onDestinationSelected: _ir,
         destinations: const [
-          NavigationDestination(icon: Icon(Icons.home_outlined), selectedIcon: Icon(Icons.home), label: 'Inicio'),
-          NavigationDestination(icon: Icon(Icons.alt_route), label: 'Mis rutas'),
-          NavigationDestination(icon: Icon(Icons.map_outlined), selectedIcon: Icon(Icons.map), label: 'Mapa'),
-          NavigationDestination(icon: Icon(Icons.settings_outlined), selectedIcon: Icon(Icons.settings), label: 'Ajustes'),
+          NavigationDestination(
+            icon: Icon(Icons.home_outlined),
+            selectedIcon: Icon(Icons.home),
+            label: 'Inicio',
+          ),
+          NavigationDestination(
+            icon: Icon(Icons.alt_route),
+            label: 'Mis rutas',
+          ),
+          NavigationDestination(
+            icon: Icon(Icons.map_outlined),
+            selectedIcon: Icon(Icons.map),
+            label: 'Mapa',
+          ),
+          NavigationDestination(
+            icon: Icon(Icons.settings_outlined),
+            selectedIcon: Icon(Icons.settings),
+            label: 'Ajustes',
+          ),
         ],
       ),
     );

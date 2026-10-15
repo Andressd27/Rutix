@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_map/flutter_map.dart';
-import 'package:latlong2/latlong.dart';
 import 'models.dart';
 import 'tracking_service.dart';
 
@@ -51,13 +50,13 @@ class InicioPage extends StatelessWidget {
                     TileLayer(
                       urlTemplate:
                           'https://tile.openstreetmap.org/{z}/{x}/{y}.png',
-                      userAgentPackageName: 'com.example.rutix',
+                      userAgentPackageName: 'com.rutix.app',
                     ),
                     PolylineLayer(polylines: [
                       Polyline(
                           points: ruta.trazado,
                           strokeWidth: 4,
-                          color: Colors.indigo),
+                          color: Theme.of(context).colorScheme.primary),
                     ]),
                     MarkerLayer(markers: [
                       if (activa && p != null)

@@ -62,17 +62,6 @@ class ConfigPage extends StatelessWidget {
         ),
         Card(
           child: ListTile(
-            leading: const Icon(Icons.support_agent),
-            title: const Text('Soporte técnico'),
-            onTap: () => _dialogo(
-              context,
-              'Soporte técnico',
-              'Escríbenos a soporte@rutix.com',
-            ),
-          ),
-        ),
-        Card(
-          child: ListTile(
             leading: const Icon(Icons.logout),
             title: const Text('Cerrar sesión'),
             onTap: () {
