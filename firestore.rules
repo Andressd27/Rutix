@@ -36,13 +36,14 @@ service cloud.firestore {
         && request.auth.uid == uid
         && request.resource.data.rol == 'trabajador'
         && request.resource.data.get('rutaId', null) == null
-        && request.resource.data.get('paradaIdx', null) == null;
+        && request.resource.data.get('paradaIdx', null) == null
+        && request.resource.data.get('codigoQr', null) == null;
 
-      // El usuario puede editar sus datos, pero no su rol, ruta ni parada.
+      // El usuario puede editar sus datos, pero no su rol, ruta, parada ni QR.
       allow update: if esAdmin()
         || (conSesion() && request.auth.uid == uid
             && !request.resource.data.diff(resource.data).affectedKeys()
-                 .hasAny(['rol', 'rutaId', 'paradaIdx']));
+                 .hasAny(['rol', 'rutaId', 'paradaIdx', 'codigoQr']));
 
       allow delete: if esAdmin();
     }
@@ -50,6 +51,30 @@ service cloud.firestore {
     match /rutas/{rutaId} {
       allow read: if esAdmin() || esDeLaRuta(rutaId);
       allow write: if esAdmin();
+
+      // Trabajadores asignados y token de su QR (RF-05 y RF-06).
+      // Los otros trabajadores nunca los ven.
+      match /pasajeros/{uid} {
+        allow read: if esAdmin() || esConductorDe(rutaId);
+        allow write: if esAdmin();
+      }
+
+      // Abordajes: id = {aaaa-mm-dd}_{uid}, uno por trabajador y día.
+      match /abordajes/{abordajeId} {
+        allow read: if esAdmin()
+          || esConductorDe(rutaId)
+          || (conSesion() && abordajeId.split('_')[1] == request.auth.uid);
+
+        // Solo el conductor de la ruta, con el token correcto del QR.
+        // Como no hay regla de update, un segundo escaneo el mismo día falla.
+        allow create: if esConductorDe(rutaId)
+          && request.resource.data.conductorUid == request.auth.uid
+          && abordajeId == request.resource.data.fecha + '_' + request.resource.data.uid
+          && get(/databases/$(database)/documents/rutas/$(rutaId)/pasajeros/$(request.resource.data.uid)).data.token
+               == request.resource.data.token;
+
+        allow delete: if esAdmin();
+      }
     }
 
     match /recorridos/{rutaId} {

@@ -10,6 +10,7 @@ import '../../services/repositorio.dart';
 import '../../services/seguimiento_trabajador.dart';
 import '../../widgets/comunes.dart';
 import '../../widgets/mapa_ruta.dart';
+import 'mi_qr_page.dart';
 
 /// Interfaz del **trabajador** (color verde): ve su ruta, el vehículo en vivo,
 /// el tiempo estimado de llegada y recibe el aviso de proximidad.
@@ -124,7 +125,7 @@ class _TrabajadorConRutaState extends State<_TrabajadorConRuta> {
   Widget build(BuildContext context) {
     final u = widget.usuario;
     final ruta = widget.ruta;
-    const titulos = ['Inicio', 'Mapa', 'Mi ruta', 'Avisos', 'Perfil'];
+    const titulos = ['Inicio', 'Mapa', 'Mi QR y ruta', 'Avisos', 'Perfil'];
 
     final paginas = [
       _Inicio(
@@ -134,16 +135,7 @@ class _TrabajadorConRutaState extends State<_TrabajadorConRuta> {
           paradaIdx: _paradaIdx,
           onVerMapa: () => setState(() => _pestana = 1)),
       _Mapa(ruta: ruta, seg: _seg, recogida: _recogida),
-      ListView(
-        padding: const EdgeInsets.all(16),
-        children: [
-          Text('${ruta.nombre} · ${ruta.turno}',
-              style: Theme.of(context).textTheme.titleLarge),
-          Text('Conductor: ${ruta.conductorNombre} · Placa: ${ruta.placa}'),
-          const SizedBox(height: 8),
-          ListaParadas(ruta: ruta, paradaResaltada: _paradaIdx),
-        ],
-      ),
+      MiQrPage(usuario: u, ruta: ruta, paradaIdx: _paradaIdx),
       _Avisos(seg: _seg),
       PerfilPage(usuario: u, ruta: ruta),
     ];
@@ -168,7 +160,7 @@ class _TrabajadorConRutaState extends State<_TrabajadorConRuta> {
               icon: Icon(Icons.map_outlined),
               selectedIcon: Icon(Icons.map),
               label: 'Mapa'),
-          NavigationDestination(icon: Icon(Icons.alt_route), label: 'Mi ruta'),
+          NavigationDestination(icon: Icon(Icons.qr_code_2), label: 'Mi QR'),
           NavigationDestination(
               icon: Icon(Icons.notifications_outlined),
               selectedIcon: Icon(Icons.notifications),

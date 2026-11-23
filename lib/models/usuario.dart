@@ -13,6 +13,9 @@ class Usuario {
   /// Índice de la parada de recogida dentro de la ruta (solo trabajador).
   final int? paradaIdx;
 
+  /// Token de su QR de abordaje (solo trabajador con ruta; lo asigna el admin).
+  final String? codigoQr;
+
   const Usuario({
     required this.uid,
     required this.nombre,
@@ -20,6 +23,7 @@ class Usuario {
     required this.rol,
     this.rutaId,
     this.paradaIdx,
+    this.codigoQr,
   });
 
   bool get esTrabajador => rol == Rol.trabajador;
@@ -38,6 +42,7 @@ class Usuario {
       rol: rol,
       rutaId: d['rutaId'] as String?,
       paradaIdx: (d['paradaIdx'] as num?)?.toInt(),
+      codigoQr: d['codigoQr'] as String?,
     );
   }
 

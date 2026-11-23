@@ -10,6 +10,7 @@ import '../../services/recorrido_conductor.dart';
 import '../../services/repositorio.dart';
 import '../../widgets/comunes.dart';
 import '../../widgets/mapa_ruta.dart';
+import 'abordaje_page.dart';
 
 /// Interfaz del **conductor** (color azul): inicia y finaliza el recorrido y
 /// comparte su ubicación con los trabajadores de su ruta.
@@ -83,9 +84,10 @@ class _ConductorConRutaState extends State<_ConductorConRuta> {
   Widget build(BuildContext context) {
     final u = widget.usuario;
     final ruta = widget.ruta;
-    const titulos = ['Mi recorrido', 'Mi ruta', 'Perfil'];
+    const titulos = ['Mi recorrido', 'Abordaje', 'Mi ruta', 'Perfil'];
     final paginas = [
       _Recorrido(usuario: u, ruta: ruta),
+      AbordajePage(conductor: u, ruta: ruta),
       ListView(
         padding: const EdgeInsets.all(16),
         children: [
@@ -115,6 +117,8 @@ class _ConductorConRutaState extends State<_ConductorConRuta> {
               icon: Icon(Icons.directions_bus_outlined),
               selectedIcon: Icon(Icons.directions_bus),
               label: 'Recorrido'),
+          NavigationDestination(
+              icon: Icon(Icons.qr_code_scanner), label: 'Abordaje'),
           NavigationDestination(icon: Icon(Icons.alt_route), label: 'Mi ruta'),
           NavigationDestination(
               icon: Icon(Icons.person_outline),

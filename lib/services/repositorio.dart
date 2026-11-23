@@ -1,8 +1,10 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:latlong2/latlong.dart';
 
+import '../core/abordaje.dart';
 import '../core/rol.dart';
 import '../data/datos_ejemplo.dart';
+import '../models/abordaje.dart';
 import '../models/recorrido.dart';
 import '../models/ruta.dart';
 import '../models/usuario.dart';
@@ -58,11 +60,37 @@ class Repositorio {
     String? conductorAnteriorUid,
   }) async {
     final lote = _db.batch();
+    final esPasajero = rol == Rol.trabajador && rutaId != null;
+
+    // Token del QR (RF-05): se conserva si sigue en la misma ruta; si cambia
+    // de ruta se genera uno nuevo y el QR anterior deja de servir.
+    final token = (esPasajero &&
+            usuario.esTrabajador &&
+            usuario.rutaId == rutaId &&
+            usuario.codigoQr != null)
+        ? usuario.codigoQr!
+        : CodigoQr.nuevoToken();
+
     lote.update(_usuarios.doc(usuario.uid), {
       'rol': rol.clave,
       'rutaId': rutaId,
       'paradaIdx': rol == Rol.trabajador ? paradaIdx : null,
+      'codigoQr': esPasajero ? token : null,
     });
+
+    // Lista de pasajeros de la ruta: base del QR y del resumen "X de Y".
+    if (usuario.esTrabajador &&
+        usuario.tieneRuta &&
+        (!esPasajero || rutaId != usuario.rutaId)) {
+      lote.delete(_pasajeros(usuario.rutaId!).doc(usuario.uid));
+    }
+    if (esPasajero) {
+      lote.set(_pasajeros(rutaId).doc(usuario.uid), {
+        'nombre': usuario.nombre,
+        'paradaIdx': paradaIdx,
+        'token': token,
+      });
+    }
 
     // Si dejaba de conducir otra ruta, se libera.
     if (usuario.esConductor &&
@@ -86,6 +114,71 @@ class Repositorio {
       );
     }
     await lote.commit();
+  }
+
+  // ---------------- Pasajeros y abordajes (RF-05, RF-06) ----------------
+
+  static CollectionReference<Map<String, dynamic>> _pasajeros(String rutaId) =>
+      _rutas.doc(rutaId).collection('pasajeros');
+  static CollectionReference<Map<String, dynamic>> _abordajes(String rutaId) =>
+      _rutas.doc(rutaId).collection('abordajes');
+
+  /// Trabajadores asignados a la ruta (admin y conductor de la ruta).
+  static Stream<List<Pasajero>> pasajeros(String rutaId) =>
+      _pasajeros(rutaId).snapshots().map((q) =>
+          q.docs.map((d) => Pasajero.desdeMapa(d.id, d.data())).toList()
+            ..sort((a, b) => a.nombre.compareTo(b.nombre)));
+
+  /// Abordajes de una ruta en una fecha (`aaaa-mm-dd`).
+  static Stream<List<Abordaje>> abordajes(String rutaId, String fecha) =>
+      _abordajes(rutaId).where('fecha', isEqualTo: fecha).snapshots().map(
+          (q) => q.docs.map((d) => Abordaje.desdeMapa(rutaId, d.data())).toList()
+            ..sort((a, b) => (b.hora ?? DateTime.now())
+                .compareTo(a.hora ?? DateTime.now())));
+
+  /// Abordaje de un trabajador en una fecha (lo puede leer el propio trabajador).
+  static Stream<Abordaje?> abordajeDe(String rutaId, String fecha, String uid) =>
+      _abordajes(rutaId).doc(idAbordaje(fecha, uid)).snapshots().map((d) =>
+          d.data() == null ? null : Abordaje.desdeMapa(rutaId, d.data()!));
+
+  /// El conductor escanea un QR y se registra el abordaje (RF-05).
+  /// Devuelve el resultado y, si se conoce, el nombre del trabajador.
+  static Future<(ResultadoAbordaje, String?)> registrarAbordaje({
+    required String rutaId,
+    required Usuario conductor,
+    required String? textoQr,
+  }) async {
+    final codigo = CodigoQr.leer(textoQr);
+    if (codigo == null) return (ResultadoAbordaje.invalido, null);
+
+    final fecha = claveFecha(DateTime.now());
+    final refPasajero = _pasajeros(rutaId).doc(codigo.uid);
+    final refAbordaje = _abordajes(rutaId).doc(idAbordaje(fecha, codigo.uid));
+
+    return _db.runTransaction((tx) async {
+      final pasajero = await tx.get(refPasajero);
+      final p = pasajero.data() == null
+          ? null
+          : Pasajero.desdeMapa(pasajero.id, pasajero.data()!);
+      final previo = await tx.get(refAbordaje);
+      final resultado = validarAbordaje(
+        codigo: codigo,
+        tokenAsignado: p?.token,
+        yaAbordo: previo.exists,
+      );
+      if (resultado.exito) {
+        tx.set(refAbordaje, {
+          'uid': codigo.uid,
+          'nombre': p!.nombre,
+          'token': codigo.token,
+          'fecha': fecha,
+          'hora': FieldValue.serverTimestamp(),
+          'conductorUid': conductor.uid,
+          'conductorNombre': conductor.nombre,
+        });
+      }
+      return (resultado, p?.nombre);
+    });
   }
 
   // ---------------- Recorridos (RF-02) ----------------

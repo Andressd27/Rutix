@@ -7,6 +7,7 @@ import '../../models/usuario.dart';
 import '../../services/auth_service.dart';
 import '../../services/repositorio.dart';
 import '../../widgets/comunes.dart';
+import 'resumen_abordajes.dart';
 
 /// Interfaz del **administrador** (color morado): rutas, recorridos en vivo y
 /// asignación de roles, rutas y paradas a los usuarios.
@@ -23,7 +24,7 @@ class _AdminShellState extends State<AdminShell> {
 
   @override
   Widget build(BuildContext context) {
-    const titulos = ['Rutas', 'Usuarios', 'Perfil'];
+    const titulos = ['Rutas', 'Abordajes', 'Usuarios', 'Perfil'];
     return Scaffold(
       appBar: BarraRol(usuario: widget.usuario, titulo: titulos[_pestana]),
       body: Column(
@@ -48,6 +49,7 @@ class _AdminShellState extends State<AdminShell> {
                   index: _pestana,
                   children: [
                     _Rutas(rutas: rutas),
+                    ResumenAbordajes(rutas: rutas),
                     _Usuarios(rutas: rutas),
                     PerfilPage(usuario: widget.usuario),
                   ],
@@ -62,6 +64,8 @@ class _AdminShellState extends State<AdminShell> {
         onDestinationSelected: (i) => setState(() => _pestana = i),
         destinations: const [
           NavigationDestination(icon: Icon(Icons.alt_route), label: 'Rutas'),
+          NavigationDestination(
+              icon: Icon(Icons.qr_code_2), label: 'Abordajes'),
           NavigationDestination(
               icon: Icon(Icons.group_outlined),
               selectedIcon: Icon(Icons.group),

@@ -8,9 +8,9 @@ Cada rol tiene **su propia interfaz, navegación y color**, y una insignia visib
 
 | Rol | Color | Qué ve y qué hace |
 |---|---|---|
-| 🟢 **Trabajador** | Verde `#007A55` | Inicio con el tiempo estimado de llegada · Mapa con el vehículo y su parada · Mi ruta · Avisos · Perfil |
-| 🔵 **Conductor** | Azul `#1D4ED8` | Mi recorrido (iniciar con GPS, simular o finalizar) · Mi ruta · Perfil |
-| 🟣 **Administrador** | Morado `#6D28D9` | Rutas con su recorrido en vivo · Usuarios (asignar rol, ruta y parada) · Perfil |
+| 🟢 **Trabajador** | Verde `#007A55` | Inicio con el tiempo estimado de llegada · Mapa con el vehículo y su parada · **Mi QR** de abordaje y su ruta · Avisos · Perfil |
+| 🔵 **Conductor** | Azul `#1D4ED8` | Mi recorrido (iniciar con GPS, simular o finalizar) · **Abordaje** (escanear QR y conteo del día) · Mi ruta · Perfil |
+| 🟣 **Administrador** | Morado `#6D28D9` | Rutas con su recorrido en vivo · **Abordajes** ("X de Y" por ruta y fecha) · Usuarios (asignar rol, ruta y parada) · Perfil |
 
 - Toda cuenta nueva se registra como **trabajador**. Solo un administrador puede convertirla en conductor o administrador; las reglas de Firestore lo impiden desde cualquier otro lugar.
 - Cada trabajador y cada conductor solo pueden leer **su propia ruta** y su recorrido.
@@ -124,11 +124,26 @@ flutter run
 
 > **Sobre las notificaciones:** se generan en el teléfono del trabajador mientras la app está abierta o en segundo plano reciente. Así no hace falta servidor ni el plan de pago *Blaze*. Si el sistema cierra la app, el aviso no llega hasta que se vuelva a abrir.
 
+### Prueba del QR de abordaje (RF-05 y RF-06)
+
+1. **Trabajador:** pestaña **Mi QR**. Muestra su código único y el estado *"Hoy todavía no registras abordaje"*.
+2. **Conductor:** pestaña **Abordaje** → **Escanear QR del trabajador** y apunta la cámara al código. En el computador, sin cámara, usa **Ingresar código manualmente** y pega el texto del QR (`rutix:v1:…`).
+3. Resultado esperado:
+   - QR válido → **"Abordaje registrado"** y el trabajador ve *"Abordaste hoy a las HH:MM"*.
+   - El mismo QR otra vez → **"Este trabajador ya abordó hoy"**.
+   - Un QR inventado o de una asignación anterior → **"Código QR no válido"**.
+   - Un trabajador de otra ruta → **"Este trabajador no está asignado a tu ruta"**.
+4. **Administrador:** pestaña **Abordajes** → cada ruta muestra **"Abordaron X de Y"**, quién subió y a qué hora y quién falta. Se puede cambiar la fecha.
+
+> El código QR se genera cuando el administrador asigna la ruta a un trabajador. Los trabajadores asignados **antes** de esta versión no tienen código: abre su ficha en **Usuarios** y pulsa **Guardar** otra vez.
+
 ## Modelo de datos (Firestore)
 
 ```
-usuarios/{uid}          nombre, correo, rol (trabajador|conductor|admin), rutaId, paradaIdx
+usuarios/{uid}          nombre, correo, rol (trabajador|conductor|admin), rutaId, paradaIdx, codigoQr
 rutas/{rutaId}          nombre, turno, placa, conductorUid, conductorNombre, paradas[{nombre, lat, lng, hora}]
+  ├─ pasajeros/{uid}     nombre, paradaIdx, token            (asignados; base del QR y de "X de Y")
+  └─ abordajes/{fecha}_{uid}  uid, nombre, token, fecha, hora, conductorUid, conductorNombre
 recorridos/{rutaId}     activo, conductorUid, conductorNombre, ubicacion (GeoPoint), inicio, actualizado, fin, simulado
 ```
 
@@ -166,7 +181,7 @@ flutter test
 flutter analyze
 ```
 
-Las pruebas de `test/` están ligadas a los requisitos: roles y colores (RF-01), cálculo del tiempo estimado (RF-03), aviso único a ≤ 1 km (RF-04), login sin credenciales visibles (RNF-03), estado del recorrido (RNF-04) y contraste ≥ 4.5:1 y texto ≥ 14 sp (RNF-05).
+Las pruebas de `test/` están ligadas a los requisitos: roles y colores (RF-01), cálculo del tiempo estimado (RF-03), aviso único a ≤ 1 km (RF-04), login sin credenciales visibles (RNF-03), estado del recorrido (RNF-04), validación del QR (RF-05), resumen "3 de 5" (RF-06) y contraste ≥ 4.5:1 y texto ≥ 14 sp (RNF-05).
 
 ## Estructura
 
