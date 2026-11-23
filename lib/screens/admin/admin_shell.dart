@@ -21,6 +21,29 @@ class AdminShell extends StatefulWidget {
 
 class _AdminShellState extends State<AdminShell> {
   int _pestana = 0;
+  @override
+  void initState() {
+    super.initState();
+    _revisarCodigosQr();
+  }
+
+  /// Al abrir la app como administrador, genera el código QR que les falte a
+  /// los trabajadores ya asignados. Así nadie tiene que volver a guardarlos.
+  /// Si no hay conexión no hace nada; se reintenta la próxima vez que se abra.
+  Future<void> _revisarCodigosQr() async {
+    try {
+      final usuarios = await Repositorio.usuariosDelServidor();
+      final n = await Repositorio.repararCodigosQr(usuarios);
+      if (mounted && n > 0) {
+        ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+            content: Text(n == 1
+                ? 'Se generó el código QR de 1 trabajador.'
+                : 'Se generaron los códigos QR de $n trabajadores.')));
+      }
+    } catch (e) {
+      debugPrint('No se pudieron revisar los códigos QR: $e');
+    }
+  }
 
   @override
   Widget build(BuildContext context) {

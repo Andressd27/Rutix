@@ -4,7 +4,10 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:material_ui/material_ui.dart';
 import 'package:latlong2/latlong.dart';
 import 'package:rutix/core/abordaje.dart';
+import 'package:rutix/core/rol.dart';
 import 'package:rutix/models/abordaje.dart';
+import 'package:rutix/models/usuario.dart';
+import 'package:rutix/services/repositorio.dart';
 import 'package:rutix/models/ruta.dart';
 import 'package:rutix/screens/admin/resumen_abordajes.dart';
 
@@ -85,6 +88,27 @@ void main() {
       expect(idAbordaje('2026-03-07', 'uid1'), '2026-03-07_uid1');
       expect(idAbordaje('2026-03-08', 'uid1'),
           isNot(idAbordaje('2026-03-07', 'uid1')));
+    });
+  });
+
+  group('Códigos QR faltantes (migración automática)', () {
+    Usuario u(String uid, Rol rol, {String? ruta, String? qr}) => Usuario(
+        uid: uid,
+        nombre: uid,
+        correo: '$uid@rutix.com',
+        rol: rol,
+        rutaId: ruta,
+        codigoQr: qr);
+
+    test('solo se reparan trabajadores con ruta y sin código', () {
+      final usuarios = [
+        u('viejo', Rol.trabajador, ruta: 'R03'), // asignado antes del QR
+        u('nuevo', Rol.trabajador, ruta: 'R03', qr: 'Kq7mT2pLx9WvRb4N'),
+        u('sinRuta', Rol.trabajador),
+        u('conductor', Rol.conductor, ruta: 'R03'),
+        u('admin', Rol.admin),
+      ];
+      expect(Repositorio.sinCodigoQr(usuarios).map((x) => x.uid), ['viejo']);
     });
   });
 

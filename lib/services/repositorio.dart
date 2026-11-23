@@ -116,6 +116,36 @@ class Repositorio {
     await lote.commit();
   }
 
+  /// Lectura única desde el servidor (nunca desde la caché local).
+  static Future<List<Usuario>> usuariosDelServidor() async {
+    final q = await _usuarios.get(const GetOptions(source: Source.server));
+    return q.docs
+        .map((d) => Usuario.desdeMapa(d.id, d.data()))
+        .whereType<Usuario>()
+        .toList();
+  }
+
+  /// Trabajadores con ruta asignada que todavía no tienen código QR
+  /// (por ejemplo, los asignados antes de que existiera el abordaje por QR).
+  static List<Usuario> sinCodigoQr(List<Usuario> usuarios) => usuarios
+      .where((u) => u.esTrabajador && u.tieneRuta && u.codigoQr == null)
+      .toList();
+
+  /// Genera el código QR que les falta a esos trabajadores, conservando su
+  /// ruta y parada. Lo ejecuta la app del administrador automáticamente.
+  static Future<int> repararCodigosQr(List<Usuario> usuarios) async {
+    final pendientes = sinCodigoQr(usuarios);
+    for (final u in pendientes) {
+      await asignar(
+        usuario: u,
+        rol: Rol.trabajador,
+        rutaId: u.rutaId,
+        paradaIdx: u.paradaIdx,
+      );
+    }
+    return pendientes.length;
+  }
+
   // ---------------- Pasajeros y abordajes (RF-05, RF-06) ----------------
 
   static CollectionReference<Map<String, dynamic>> _pasajeros(String rutaId) =>

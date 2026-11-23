@@ -135,7 +135,7 @@ flutter run
    - Un trabajador de otra ruta → **"Este trabajador no está asignado a tu ruta"**.
 4. **Administrador:** pestaña **Abordajes** → cada ruta muestra **"Abordaron X de Y"**, quién subió y a qué hora y quién falta. Se puede cambiar la fecha.
 
-> El código QR se genera cuando el administrador asigna la ruta a un trabajador. Los trabajadores asignados **antes** de esta versión no tienen código: abre su ficha en **Usuarios** y pulsa **Guardar** otra vez.
+> El código QR se genera cuando el administrador asigna la ruta a un trabajador. A los trabajadores asignados antes de que existiera el QR se les genera **automáticamente** la próxima vez que un administrador abra la app (aparece el aviso *"Se generó el código QR de N trabajadores"*).
 
 ## Modelo de datos (Firestore)
 
