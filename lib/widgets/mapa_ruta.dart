@@ -80,7 +80,13 @@ class _MapaRutaState extends State<MapaRuta> {
             ),
             if (ruta.paradas.length > 1)
               PolylineLayer(polylines: [
-                Polyline(points: ruta.trazado, strokeWidth: 5, color: color),
+                Polyline(
+                  points: ruta.camino,
+                  strokeWidth: ruta.tieneCamino ? 6 : 4,
+                  color: color,
+                  borderStrokeWidth: ruta.tieneCamino ? 2 : 0,
+                  borderColor: Colors.white,
+                ),
               ]),
             MarkerLayer(markers: [
               for (final p in ruta.paradas)

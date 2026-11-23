@@ -8,6 +8,7 @@ import '../models/abordaje.dart';
 import '../models/recorrido.dart';
 import '../models/ruta.dart';
 import '../models/usuario.dart';
+import 'osrm_service.dart';
 
 /// Acceso a Firestore. Colecciones:
 /// - `usuarios/{uid}`      perfil y rol
@@ -39,6 +40,42 @@ class Repositorio {
       lote.set(_rutas.doc(r.id), r.aMapa(), SetOptions(merge: true));
     }
     await lote.commit();
+    await completarCaminos();
+  }
+
+  // ---------------- Camino por calles (OSRM) ----------------
+
+  /// Calcula con OSRM el camino por calles de la ruta y lo guarda (solo admin).
+  static Future<void> calcularCamino(Ruta ruta) async {
+    final t = await OsrmService.calcular(ruta.trazado);
+    await _rutas.doc(ruta.id).update({
+      'caminoPolilinea': t.polilinea,
+      'distanciaMetros': t.distanciaMetros,
+      'duracionSegundos': t.duracionSegundos,
+      'caminoCalculado': FieldValue.serverTimestamp(),
+    });
+  }
+
+  /// Calcula el camino de las rutas que aún no lo tienen. Respeta el límite
+  /// del servidor público de OSRM (1 consulta por segundo).
+  /// Devuelve cuántas rutas quedaron con camino nuevo.
+  static Future<int> completarCaminos() async {
+    final q = await _rutas.get(const GetOptions(source: Source.server));
+    final pendientes = q.docs
+        .map((d) => Ruta.desdeMapa(d.id, d.data()))
+        .where((r) => !r.tieneCamino && r.paradas.length >= 2)
+        .toList();
+    var listos = 0;
+    for (final r in pendientes) {
+      if (listos > 0) await Future<void>.delayed(const Duration(milliseconds: 1100));
+      try {
+        await calcularCamino(r);
+        listos++;
+      } catch (_) {
+        // Sin conexión u OSRM caído: la ruta sigue con líneas rectas.
+      }
+    }
+    return listos;
   }
 
   // ---------------- Usuarios ----------------

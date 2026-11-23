@@ -1,5 +1,8 @@
 import 'package:latlong2/latlong.dart';
 
+import '../core/geo.dart';
+import '../core/polilinea.dart';
+
 class Parada {
   final String nombre;
   final LatLng punto;
@@ -30,6 +33,12 @@ class Ruta {
   final String conductorNombre;
   final List<Parada> paradas;
 
+  /// Camino por calles calculado con OSRM ("polyline6"). `null` si aún no se
+  /// calculó: en ese caso se usan líneas rectas entre paradas.
+  final String? caminoPolilinea;
+  final double? distanciaMetros;
+  final double? duracionSegundos;
+
   const Ruta({
     required this.id,
     required this.nombre,
@@ -38,9 +47,31 @@ class Ruta {
     required this.paradas,
     this.conductorUid,
     this.conductorNombre = 'Sin asignar',
+    this.caminoPolilinea,
+    this.distanciaMetros,
+    this.duracionSegundos,
   });
 
+  static final _caminos = Expando<List<LatLng>>();
+
+  /// Paradas unidas en línea recta.
   List<LatLng> get trazado => paradas.map((p) => p.punto).toList();
+
+  bool get tieneCamino =>
+      caminoPolilinea != null && caminoPolilinea!.isNotEmpty;
+
+  /// Línea a dibujar y a recorrer: por calles si existe; si no, recta.
+  List<LatLng> get camino {
+    if (!tieneCamino) return trazado;
+    return _caminos[this] ??= Polilinea.decodificar(caminoPolilinea!);
+  }
+
+  /// Velocidad media del recorrido según OSRM (m/s), o 25 km/h por defecto.
+  double get velocidadMedia {
+    final d = distanciaMetros, t = duracionSegundos;
+    if (d == null || t == null || t <= 0) return Geo.velocidadPorDefecto;
+    return d / t;
+  }
 
   factory Ruta.desdeMapa(String id, Map<String, dynamic> d) => Ruta(
         id: id,
@@ -52,8 +83,13 @@ class Ruta {
         paradas: ((d['paradas'] as List?) ?? const [])
             .map((p) => Parada.desdeMapa(Map<String, dynamic>.from(p as Map)))
             .toList(),
+        caminoPolilinea: d['caminoPolilinea'] as String?,
+        distanciaMetros: (d['distanciaMetros'] as num?)?.toDouble(),
+        duracionSegundos: (d['duracionSegundos'] as num?)?.toDouble(),
       );
 
+  /// Datos editables de la ruta. El camino se guarda aparte
+  /// (`Repositorio.guardarCamino`) para no borrarlo al editar.
   Map<String, dynamic> aMapa() => {
         'nombre': nombre,
         'turno': turno,

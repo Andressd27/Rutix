@@ -25,6 +25,7 @@ Cada rol tiene **su propia interfaz, navegación y color**, y una insignia visib
 | `connectivity_plus` | Aviso de "Sin conexión" |
 | `geolocator` | GPS del conductor y ubicación del usuario |
 | `flutter_map` + `latlong2` | Mapa con teselas de OpenStreetMap (sin API key) |
+| `http` + [OSRM](https://project-osrm.org) | Trazado por calles de cada ruta y velocidad media para el tiempo estimado (servidor público, gratis y sin clave) |
 | `material_ui` | Widgets Material (reemplaza a `package:flutter/material.dart`, obsoleto desde Flutter 3.47) |
 
 Todo funciona con el **plan gratuito (Spark)** de Firebase.
@@ -137,11 +138,25 @@ flutter run
 
 > El código QR se genera cuando el administrador asigna la ruta a un trabajador. A los trabajadores asignados antes de que existiera el QR se les genera **automáticamente** la próxima vez que un administrador abra la app (aparece el aviso *"Se generó el código QR de N trabajadores"*).
 
+## Trazado por calles (OSRM)
+
+El recorrido no se dibuja en línea recta entre paradas: se usa el camino real por calles que calcula [OSRM](https://project-osrm.org), con los mismos datos de OpenStreetMap que el mapa.
+
+- **Se calcula una sola vez por ruta** y se guarda en Firestore (`caminoPolilinea`). Lo hace la app del administrador al cargar las rutas o al abrirse, si a alguna ruta le falta. Las demás pantallas no consultan OSRM, así se respeta el límite del servidor público (1 consulta por segundo).
+- En **Rutas**, cada ruta muestra su distancia y duración por calles, y un botón para **recalcular** el trazado.
+- **Tiempo estimado (RF-03):** se usa la distancia que falta **por la vía** hasta la parada y la velocidad media de la ruta según OSRM.
+- La app **sigue al vehículo hacia adelante** sobre el camino, así no se confunde cuando la ruta pasa dos veces por la misma vía. Cuando el vehículo deja atrás la parada, el trabajador ve *"El vehículo ya pasó por tu parada"*.
+- La simulación del conductor recorre el camino por calles.
+- Si OSRM no responde, la ruta sigue funcionando con líneas rectas.
+
+> OSRM calcula por dónde se puede ir, no por dónde va realmente el conductor, y no considera el tráfico en vivo. Con el GPS real, el marcador del vehículo siempre muestra la posición verdadera.
+
 ## Modelo de datos (Firestore)
 
 ```
 usuarios/{uid}          nombre, correo, rol (trabajador|conductor|admin), rutaId, paradaIdx, codigoQr
-rutas/{rutaId}          nombre, turno, placa, conductorUid, conductorNombre, paradas[{nombre, lat, lng, hora}]
+rutas/{rutaId}          nombre, turno, placa, conductorUid, conductorNombre, paradas[{nombre, lat, lng, hora}],
+                        caminoPolilinea, distanciaMetros, duracionSegundos   (trazado por calles de OSRM)
   ├─ pasajeros/{uid}     nombre, paradaIdx, token            (asignados; base del QR y de "X de Y")
   └─ abordajes/{fecha}_{uid}  uid, nombre, token, fecha, hora, conductorUid, conductorNombre
 recorridos/{rutaId}     activo, conductorUid, conductorNombre, ubicacion (GeoPoint), inicio, actualizado, fin, simulado

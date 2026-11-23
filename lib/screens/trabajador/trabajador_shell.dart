@@ -38,7 +38,9 @@ class TrabajadorShell extends StatelessWidget {
         final ruta = snap.data;
         if (ruta == null) return _SinRuta(usuario: usuario);
         return _TrabajadorConRuta(
-          key: ValueKey('${ruta.id}-${usuario.paradaIdx}'),
+          // Si cambia la parada o el trazado, el seguimiento se reinicia.
+          key: ValueKey('${ruta.id}-${usuario.paradaIdx}-'
+              '${ruta.caminoPolilinea.hashCode}'),
           usuario: usuario,
           ruta: ruta,
         );
@@ -111,7 +113,7 @@ class _TrabajadorConRutaState extends State<_TrabajadorConRuta> {
   @override
   void initState() {
     super.initState();
-    _seg = SeguimientoTrabajador(rutaId: widget.ruta.id, recogida: _recogida)
+    _seg = SeguimientoTrabajador(ruta: widget.ruta, paradaIdx: _paradaIdx)
       ..iniciar();
   }
 
@@ -180,13 +182,14 @@ class _EstadoVehiculo {
   final bool activo;
   final double? metros;
   final int? minutos;
-  const _EstadoVehiculo(this.activo, this.metros, this.minutos);
+  final bool yaPaso;
+  const _EstadoVehiculo(this.activo, this.metros, this.minutos, this.yaPaso);
 
   factory _EstadoVehiculo.de(SeguimientoTrabajador seg) {
     final r = seg.recorrido.value;
     final activo = r != null && r.activo;
-    final m = seg.metrosAlVehiculo;
-    return _EstadoVehiculo(activo, m, m == null ? null : Geo.minutosEstimados(m));
+    return _EstadoVehiculo(activo, seg.metrosAlVehiculo, seg.minutosEstimados,
+        seg.avance?.yaPaso ?? false);
   }
 
   bool get cerca => metros != null && metros! <= Geo.umbralAvisoMetros;
@@ -258,7 +261,12 @@ class _Inicio extends StatelessWidget {
                         ? 'Sin parada de recogida asignada'
                         : 'Tu parada: ${ruta.paradas[paradaIdx!].nombre} (${ruta.paradas[paradaIdx!].hora})'),
                     const SizedBox(height: 12),
-                    if (e.activo && e.minutos != null)
+                    if (e.activo && e.yaPaso)
+                      const Text('El vehículo ya pasó por tu parada.',
+                          key: Key('ya_paso'),
+                          style: TextStyle(
+                              fontSize: 18, fontWeight: FontWeight.w700))
+                    else if (e.activo && e.minutos != null)
                       Row(
                         crossAxisAlignment: CrossAxisAlignment.end,
                         children: [
@@ -327,12 +335,14 @@ class _Mapa extends StatelessWidget {
                     e.activo ? Icons.directions_bus : Icons.pause_circle_outline,
                     color: Theme.of(context).colorScheme.primary),
                 title: Text(e.activo
-                    ? (e.minutos != null
-                        ? 'Llega en ~${e.minutos} min'
-                        : 'Recorrido activo')
+                    ? (e.yaPaso
+                        ? 'Ya pasó por tu parada'
+                        : e.minutos != null
+                            ? 'Llega en ~${e.minutos} min'
+                            : 'Recorrido activo')
                     : 'Sin recorrido activo'),
                 subtitle: Text(e.metros != null
-                    ? 'A ${e.metros!.round()} m de tu parada · ${ruta.placa}'
+                    ? 'A ${e.metros!.round()} m de tu parada por la vía · ${ruta.placa}'
                     : '${ruta.nombre} · ${ruta.placa}'),
               ),
             ),

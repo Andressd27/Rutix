@@ -72,7 +72,12 @@ class RecorridoConductor {
     }
     if (!await _abrir(ruta, conductor, simulado: true)) return false;
     fuente.value = FuenteRecorrido.simulacion;
-    final puntos = Geo.interpolar(ruta.trazado, 30);
+    // Recorre el camino por calles (o la línea recta si no hay) a velocidad
+    // constante: unos 3 minutos para toda la ruta, con pasos de al menos 40 m.
+    final camino = ruta.camino;
+    final largo = Geo.longitud(camino, 0, camino.length - 1);
+    final paso = largo / 180 < 40 ? 40.0 : largo / 180;
+    final puntos = Geo.remuestrear(camino, paso);
     var i = 0;
     _publicar(puntos.first);
     _simTimer = Timer.periodic(const Duration(seconds: 1), (_) {

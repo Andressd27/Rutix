@@ -21,10 +21,27 @@ class AdminShell extends StatefulWidget {
 
 class _AdminShellState extends State<AdminShell> {
   int _pestana = 0;
+
   @override
   void initState() {
     super.initState();
     _revisarCodigosQr();
+    _revisarCaminos();
+  }
+
+  /// Calcula el camino por calles de las rutas que aún no lo tienen.
+  Future<void> _revisarCaminos() async {
+    try {
+      final n = await Repositorio.completarCaminos();
+      if (mounted && n > 0) {
+        ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+            content: Text(n == 1
+                ? 'Se calculó el trazado por calles de 1 ruta.'
+                : 'Se calculó el trazado por calles de $n rutas.')));
+      }
+    } catch (e) {
+      debugPrint('No se pudieron revisar los trazados: $e');
+    }
   }
 
   /// Al abrir la app como administrador, genera el código QR que les falte a
@@ -150,10 +167,62 @@ class _Rutas extends StatelessWidget {
                   style: const TextStyle(fontWeight: FontWeight.w700)),
               subtitle: Text('Conductor: ${r.conductorNombre} · ${r.placa}'),
               childrenPadding: const EdgeInsets.symmetric(horizontal: 16),
-              children: [ListaParadas(ruta: r)],
+              children: [
+                _InfoCamino(ruta: r),
+                ListaParadas(ruta: r),
+              ],
             ),
           ),
       ],
+    );
+  }
+}
+
+/// Estado del trazado por calles de la ruta y botón para recalcularlo.
+class _InfoCamino extends StatefulWidget {
+  const _InfoCamino({required this.ruta});
+  final Ruta ruta;
+
+  @override
+  State<_InfoCamino> createState() => _InfoCaminoState();
+}
+
+class _InfoCaminoState extends State<_InfoCamino> {
+  bool _calculando = false;
+
+  Future<void> _recalcular() async {
+    setState(() => _calculando = true);
+    try {
+      await Repositorio.calcularCamino(widget.ruta);
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+            content: Text('No se pudo calcular el trazado: $e')));
+      }
+    } finally {
+      if (mounted) setState(() => _calculando = false);
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final r = widget.ruta;
+    final texto = r.tieneCamino
+        ? 'Por calles · ${(r.distanciaMetros! / 1000).toStringAsFixed(1)} km · '
+            '~${(r.duracionSegundos! / 60).round()} min'
+        : 'Líneas rectas (sin trazado por calles)';
+    return ListTile(
+      contentPadding: EdgeInsets.zero,
+      leading: Icon(r.tieneCamino ? Icons.route : Icons.timeline),
+      title: Text(texto),
+      trailing: _calculando
+          ? const SizedBox(
+              width: 24, height: 24, child: CircularProgressIndicator(strokeWidth: 2))
+          : IconButton(
+              tooltip: 'Recalcular trazado por calles',
+              icon: const Icon(Icons.refresh),
+              onPressed: _recalcular,
+            ),
     );
   }
 }
