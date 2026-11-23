@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "576361840223",
+    "project_id": "rutix-uts",
+    "storage_bucket": "rutix-uts.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:576361840223:android:a37ba4ba07a93a0b3865ea",
+        "android_client_info": {
+          "package_name": "co.edu.uts.rutix"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyCcGjn9gMHV1T6o51lGUqmcQk6tlkve8J4"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

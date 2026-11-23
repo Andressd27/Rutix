@@ -1,0 +1,66 @@
+rules_version = '2';
+
+// Reglas de seguridad de Rutix (RNF-03 y RNF-04).
+// - Cada usuario solo lee su propio perfil; el administrador lee y edita todos.
+// - Nadie puede darse a sí mismo el rol de conductor o administrador.
+// - Trabajadores y conductores solo ven la ruta y el recorrido de SU ruta.
+// - Solo el conductor asignado a una ruta puede publicar su ubicación.
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    function conSesion() {
+      return request.auth != null;
+    }
+
+    function perfil() {
+      return get(/databases/$(database)/documents/usuarios/$(request.auth.uid)).data;
+    }
+
+    function esAdmin() {
+      return conSesion() && perfil().rol == 'admin';
+    }
+
+    function esDeLaRuta(rutaId) {
+      return conSesion() && perfil().get('rutaId', null) == rutaId;
+    }
+
+    function esConductorDe(rutaId) {
+      return esDeLaRuta(rutaId) && perfil().rol == 'conductor';
+    }
+
+    match /usuarios/{uid} {
+      allow read: if conSesion() && (request.auth.uid == uid || esAdmin());
+
+      // Registro: siempre como trabajador y sin ruta asignada.
+      allow create: if conSesion()
+        && request.auth.uid == uid
+        && request.resource.data.rol == 'trabajador'
+        && request.resource.data.get('rutaId', null) == null
+        && request.resource.data.get('paradaIdx', null) == null;
+
+      // El usuario puede editar sus datos, pero no su rol, ruta ni parada.
+      allow update: if esAdmin()
+        || (conSesion() && request.auth.uid == uid
+            && !request.resource.data.diff(resource.data).affectedKeys()
+                 .hasAny(['rol', 'rutaId', 'paradaIdx']));
+
+      allow delete: if esAdmin();
+    }
+
+    match /rutas/{rutaId} {
+      allow read: if esAdmin() || esDeLaRuta(rutaId);
+      allow write: if esAdmin();
+    }
+
+    match /recorridos/{rutaId} {
+      allow read: if esAdmin() || esDeLaRuta(rutaId);
+
+      // El conductor de la ruta escribe su propio recorrido.
+      allow create, update: if esAdmin()
+        || (esConductorDe(rutaId)
+            && request.resource.data.conductorUid == request.auth.uid);
+
+      allow delete: if esAdmin();
+    }
+  }
+}

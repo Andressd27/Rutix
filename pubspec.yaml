@@ -38,6 +38,11 @@ dependencies:
   latlong2: 0.9.1
   geolocator: 13.0.2
   material_ui: ^1.11.1
+  firebase_core: ^5.2.0
+  firebase_auth: ^7.1.0
+  cloud_firestore: ^7.2.0
+  flutter_local_notifications: ^23.0.3
+  connectivity_plus: ^7.3.2
 
 dev_dependencies:
   flutter_test:
