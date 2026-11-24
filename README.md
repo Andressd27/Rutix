@@ -34,7 +34,10 @@ Todo funciona con el **plan gratuito (Spark)** de Firebase.
 
 - **Flutter 3.47 o superior** (probado con Flutter 3.50.1 / Dart 3.14.0).
 - **Node.js** (para la CLI de Firebase).
-- **Android:** Android Studio con Android SDK y un emulador o un teléfono con *Depuración USB*.
+- **Android:** Android Studio con Android SDK y un emulador o un teléfono con *Depuración USB*. En **Android Studio → Settings → Languages & Frameworks → Android SDK** deben estar instalados:
+  - Pestaña *SDK Platforms*: **Android 37** (el proyecto compila con `compileSdk = 37`, que exigen las notificaciones).
+  - Pestaña *SDK Tools*: **NDK (Side by side) 30.0.16248370** (marca *Show Package Details* para elegir la versión).
+  - El proyecto usa Android Gradle Plugin 9.1.1 y Gradle 9.5.0; se descargan solos la primera vez.
 - **Web:** Google Chrome o Edge.
 - **Windows:** activar el **Modo de desarrollador** (Configuración → Sistema → Para programadores). Flutter lo necesita para los plugins; sin él, las compilaciones para Android fallan.
 

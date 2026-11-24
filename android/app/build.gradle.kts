@@ -9,8 +9,13 @@ plugins {
 
 android {
     namespace = "co.edu.uts.rutix"
-    compileSdk = flutter.compileSdkVersion
-    ndkVersion = flutter.ndkVersion
+    // flutter_local_notifications y androidx.core exigen compilar con Android 37.
+    // Solo afecta la compilación; los teléfonos compatibles los define minSdk.
+    compileSdk = 37
+    // Requiere este NDK instalado (Android Studio → SDK Manager →
+    // SDK Tools → NDK (Side by side)). Flutter sugiere 28.2, pero no viene
+    // instalado por defecto y Gradle no logra descargarlo solo.
+    ndkVersion = "30.0.16248370"
 
     compileOptions {
         // Requerido por flutter_local_notifications.
