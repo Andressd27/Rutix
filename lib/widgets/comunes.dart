@@ -8,6 +8,7 @@ import '../models/ruta.dart';
 import '../models/usuario.dart';
 import '../services/auth_service.dart';
 import '../services/conectividad_service.dart';
+import '../services/tema_service.dart';
 import 'emergencia.dart';
 
 /// Igual que [StreamBuilder], pero crea la consulta una sola vez por [clave].
@@ -384,6 +385,7 @@ class PerfilPage extends StatelessWidget {
             ],
           ),
         ),
+        const SelectorTema(),
         Card(
           child: ListTile(
             leading: const Icon(Icons.phone_in_talk_outlined),
@@ -399,6 +401,56 @@ class PerfilPage extends StatelessWidget {
           ),
         ),
       ],
+    );
+  }
+}
+
+/// Modo de pantalla: sigue al teléfono, siempre claro o siempre oscuro.
+class SelectorTema extends StatelessWidget {
+  const SelectorTema({super.key});
+
+  @override
+  Widget build(BuildContext context) {
+    final servicio = TemaService.instancia;
+    return Card(
+      child: Padding(
+        padding: const EdgeInsets.fromLTRB(16, 12, 16, 16),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            const Row(
+              children: [
+                Icon(Icons.contrast),
+                SizedBox(width: 16),
+                Text('Modo de pantalla', style: TextStyle(fontSize: 16)),
+              ],
+            ),
+            const SizedBox(height: 12),
+            ValueListenableBuilder<ThemeMode>(
+              valueListenable: servicio.modo,
+              builder: (context, modo, _) => SegmentedButton<ThemeMode>(
+                key: const Key('selector_tema'),
+                segments: const [
+                  ButtonSegment(
+                      value: ThemeMode.system,
+                      icon: Icon(Icons.brightness_auto),
+                      label: Text('Sistema')),
+                  ButtonSegment(
+                      value: ThemeMode.light,
+                      icon: Icon(Icons.light_mode),
+                      label: Text('Claro')),
+                  ButtonSegment(
+                      value: ThemeMode.dark,
+                      icon: Icon(Icons.dark_mode),
+                      label: Text('Oscuro')),
+                ],
+                selected: {modo},
+                onSelectionChanged: (s) => servicio.cambiar(s.first),
+              ),
+            ),
+          ],
+        ),
+      ),
     );
   }
 }

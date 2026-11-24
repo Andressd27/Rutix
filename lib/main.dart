@@ -12,6 +12,7 @@ import 'services/conectividad_service.dart';
 import 'services/notificaciones_service.dart';
 import 'services/recorrido_conductor.dart';
 import 'services/sesion_service.dart';
+import 'services/tema_service.dart';
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -28,6 +29,7 @@ Future<void> main() async {
   }
   ConectividadService.instancia.iniciar();
   NotificacionesService.instancia.iniciar();
+  await TemaService.instancia.cargar();
   SesionService.instancia.iniciar();
   runApp(const RutixApp());
 }
@@ -62,9 +64,15 @@ class _RutixAppState extends State<RutixApp> {
 
   @override
   Widget build(BuildContext context) {
-    return ValueListenableBuilder<EstadoSesion>(
-      valueListenable: _sesion.estado,
-      builder: (context, estado, _) {
+    return ListenableBuilder(
+      listenable: Listenable.merge([_sesion.estado, TemaService.instancia.modo]),
+      builder: (context, _) => _construir(_sesion.estado.value),
+    );
+  }
+
+  Widget _construir(EstadoSesion estado) {
+    return Builder(
+      builder: (context) {
         final usuario = estado is ConSesion ? estado.usuario : null;
         final Widget inicio = switch (estado) {
           SesionCargando() =>
@@ -86,7 +94,8 @@ class _RutixAppState extends State<RutixApp> {
           debugShowCheckedModeBanner: false,
           theme: temaPara(usuario?.rol),
           darkTheme: temaPara(usuario?.rol, brillo: Brightness.dark),
-          themeMode: ThemeMode.system,
+          // Sistema, claro u oscuro según lo elegido en Perfil.
+          themeMode: TemaService.instancia.modo.value,
           home: inicio,
         );
       },

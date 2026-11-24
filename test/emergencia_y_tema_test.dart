@@ -63,10 +63,11 @@ void main() {
       expect(contraste(Colors.white, colorPeligro), greaterThanOrEqualTo(4.5));
     });
 
-    test('la app sigue el modo del teléfono', () {
+    test('la app usa el modo elegido en Perfil (por defecto, el del teléfono)',
+        () {
       final main = File('lib/main.dart').readAsStringSync();
       expect(main, contains('darkTheme: temaPara('));
-      expect(main, contains('themeMode: ThemeMode.system'));
+      expect(main, contains('themeMode: TemaService.instancia.modo.value'));
     });
   });
 

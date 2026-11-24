@@ -166,7 +166,7 @@ El administrador tiene la pestaña **Alertas**, con un contador de pendientes. M
 
 ## Modo oscuro
 
-La app sigue automáticamente el modo claro u oscuro del teléfono. En modo oscuro:
+Por defecto la app sigue el modo claro u oscuro del teléfono. Cada usuario puede elegirlo a mano en **Perfil → Modo de pantalla** (**Sistema**, **Claro** u **Oscuro**); la elección queda guardada en el teléfono. En modo oscuro:
 
 - Cada rol usa una versión clara de su color: verde `#5FD6A4`, azul `#8AB4F8` y morado `#C4A7FF`.
 - Las pruebas verifican que el contraste siga siendo ≥ 4.5:1 (RNF-05).
