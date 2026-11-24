@@ -6,6 +6,7 @@ import '../core/gestion_rutas.dart';
 import '../core/rol.dart';
 import '../data/datos_ejemplo.dart';
 import '../models/abordaje.dart';
+import '../models/alerta.dart';
 import '../models/recorrido.dart';
 import '../models/ruta.dart';
 import '../models/usuario.dart';
@@ -155,6 +156,62 @@ class Repositorio {
 
   static Future<void> eliminarVehiculo(String placa) =>
       _vehiculos.doc(placa).delete();
+
+  // ---------------- Emergencias ----------------
+
+  static CollectionReference<Map<String, dynamic>> get _alertas =>
+      _db.collection('alertas');
+  static DocumentReference<Map<String, dynamic>> get _empresa =>
+      _db.collection('config').doc('empresa');
+
+  /// Envía una alerta de emergencia con la ubicación del teléfono, si se tiene.
+  static Future<void> enviarAlerta({
+    required Usuario usuario,
+    required String rutaNombre,
+    LatLng? ubicacion,
+  }) =>
+      _alertas.add({
+        'uid': usuario.uid,
+        'nombre': usuario.nombre,
+        'rol': usuario.rol.clave,
+        'rutaId': usuario.rutaId,
+        'rutaNombre': rutaNombre,
+        'ubicacion': ubicacion == null
+            ? null
+            : GeoPoint(ubicacion.latitude, ubicacion.longitude),
+        'creada': FieldValue.serverTimestamp(),
+        'atendida': false,
+      });
+
+  /// Últimas 50 alertas (solo administrador).
+  static Stream<List<Alerta>> alertas() => _alertas
+      .orderBy('creada', descending: true)
+      .limit(50)
+      .snapshots()
+      .map((q) => ordenarAlertas(
+          q.docs.map((d) => Alerta.desdeMapa(d.id, d.data()))));
+
+  /// Alertas enviadas por un usuario (para que vea si ya las atendieron).
+  static Stream<List<Alerta>> misAlertas(String uid) => _alertas
+      .where('uid', isEqualTo: uid)
+      .snapshots()
+      .map((q) => ordenarAlertas(
+          q.docs.map((d) => Alerta.desdeMapa(d.id, d.data()))));
+
+  static Future<void> atenderAlerta(String id, Usuario admin) =>
+      _alertas.doc(id).update({
+        'atendida': true,
+        'atendidaPor': admin.nombre,
+        'atendidaEn': FieldValue.serverTimestamp(),
+      });
+
+  /// Teléfono de la empresa para emergencias (`config/empresa.telefono`).
+  static Stream<String?> telefonoEmpresa() => _empresa
+      .snapshots()
+      .map((d) => d.data()?['telefono'] as String?);
+
+  static Future<void> guardarTelefonoEmpresa(String telefono) =>
+      _empresa.set({'telefono': telefono.trim()}, SetOptions(merge: true));
 
   // ---------------- Camino por calles (OSRM) ----------------
 

@@ -143,7 +143,10 @@ class _TrabajadorConRutaState extends State<_TrabajadorConRuta> {
     ];
 
     return Scaffold(
-      appBar: BarraRol(usuario: u, titulo: titulos[_pestana]),
+      appBar: BarraRol(
+          usuario: u,
+          titulo: titulos[_pestana],
+          rutaNombre: '${ruta.nombre} · ${ruta.placa}'),
       body: Column(
         children: [
           const BannerConexion(),

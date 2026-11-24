@@ -2,6 +2,7 @@ import 'package:flutter_map/flutter_map.dart';
 import 'package:latlong2/latlong.dart';
 import 'package:material_ui/material_ui.dart';
 
+import '../../core/tema.dart';
 import '../../core/gestion_rutas.dart';
 import '../../models/ruta.dart';
 import '../../models/vehiculo.dart';
@@ -185,6 +186,7 @@ class _EditorRutaPageState extends State<EditorRutaPage> {
   @override
   Widget build(BuildContext context) {
     final color = Theme.of(context).colorScheme.primary;
+    final enColor = Theme.of(context).colorScheme.onPrimary;
     final centro = _paradas.isNotEmpty
         ? _paradas.first.punto
         : const LatLng(7.1193, -73.1227); // Bucaramanga
@@ -309,6 +311,10 @@ class _EditorRutaPageState extends State<EditorRutaPage> {
                         urlTemplate:
                             'https://tile.openstreetmap.org/{z}/{x}/{y}.png',
                         userAgentPackageName: 'co.edu.uts.rutix',
+                        tileBuilder:
+                            Theme.of(context).brightness == Brightness.dark
+                                ? darkModeTileBuilder
+                                : null,
                       ),
                       if (_paradas.length > 1)
                         PolylineLayer(polylines: [
@@ -326,12 +332,13 @@ class _EditorRutaPageState extends State<EditorRutaPage> {
                             width: 32,
                             height: 32,
                             child: CircleAvatar(
-                              backgroundColor: _moviendo == i
-                                  ? const Color(0xFFB3261E)
-                                  : color,
+                              backgroundColor:
+                                  _moviendo == i ? colorPeligro : color,
                               child: Text('${i + 1}',
-                                  style: const TextStyle(
-                                      color: Colors.white,
+                                  style: TextStyle(
+                                      color: _moviendo == i
+                                          ? Colors.white
+                                          : enColor,
                                       fontWeight: FontWeight.w700)),
                             ),
                           ),
@@ -345,7 +352,7 @@ class _EditorRutaPageState extends State<EditorRutaPage> {
                     child: Card(
                       color: _moviendo != null
                           ? const Color(0xFFFCE8E6)
-                          : Colors.white,
+                          : Theme.of(context).colorScheme.surfaceContainerHighest,
                       child: Padding(
                         padding: const EdgeInsets.all(10),
                         child: Text(
@@ -353,7 +360,11 @@ class _EditorRutaPageState extends State<EditorRutaPage> {
                               ? 'Toca el mapa para mover la parada ${_moviendo! + 1}.'
                               : 'Toca el mapa para agregar una parada. '
                                   'El trazado por calles se calcula al guardar.',
-                          style: const TextStyle(fontSize: 14),
+                          style: TextStyle(
+                              fontSize: 14,
+                              color: _moviendo != null
+                                  ? const Color(0xFF8C1D18)
+                                  : null),
                         ),
                       ),
                     ),
@@ -383,8 +394,9 @@ class _EditorRutaPageState extends State<EditorRutaPage> {
                           key: ObjectKey(p),
                           leading: CircleAvatar(
                             backgroundColor:
-                                _moviendo == i ? const Color(0xFFB3261E) : color,
-                            foregroundColor: Colors.white,
+                                _moviendo == i ? colorPeligro : color,
+                            foregroundColor:
+                                _moviendo == i ? Colors.white : enColor,
                             child: Text('${i + 1}'),
                           ),
                           title: InkWell(

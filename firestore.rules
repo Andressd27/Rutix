@@ -83,6 +83,33 @@ service cloud.firestore {
       allow read, write: if esAdmin();
     }
 
+    // Alertas de emergencia (botón SOS).
+    match /alertas/{id} {
+      // El administrador las ve todas; cada usuario, solo las suyas.
+      allow read: if esAdmin()
+        || (conSesion() && resource.data.uid == request.auth.uid);
+
+      // Se crean a nombre propio, con el rol real y sin marcar como atendidas.
+      allow create: if conSesion()
+        && request.resource.data.uid == request.auth.uid
+        && request.resource.data.rol == perfil().rol
+        && request.resource.data.atendida == false
+        && request.resource.data.keys().hasOnly(['uid', 'nombre', 'rol',
+             'rutaId', 'rutaNombre', 'ubicacion', 'creada', 'atendida']);
+
+      // Solo el administrador las marca como atendidas.
+      allow update: if esAdmin()
+        && request.resource.data.diff(resource.data).affectedKeys()
+             .hasOnly(['atendida', 'atendidaPor', 'atendidaEn']);
+      allow delete: if esAdmin();
+    }
+
+    // Datos de la empresa (teléfono de emergencias).
+    match /config/{doc} {
+      allow read: if conSesion();
+      allow write: if esAdmin();
+    }
+
     match /recorridos/{rutaId} {
       allow read: if esAdmin() || esDeLaRuta(rutaId);
 

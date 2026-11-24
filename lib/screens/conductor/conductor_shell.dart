@@ -2,6 +2,7 @@ import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:latlong2/latlong.dart';
 import 'package:material_ui/material_ui.dart';
 
+import '../../core/tema.dart';
 import '../../core/rol.dart';
 import '../../models/recorrido.dart';
 import '../../models/ruta.dart';
@@ -103,7 +104,10 @@ class _ConductorConRutaState extends State<_ConductorConRuta> {
     ];
 
     return Scaffold(
-      appBar: BarraRol(usuario: u, titulo: titulos[_pestana]),
+      appBar: BarraRol(
+          usuario: u,
+          titulo: titulos[_pestana],
+          rutaNombre: '${ruta.nombre} · ${ruta.placa}'),
       body: Column(
         children: [
           const BannerConexion(),
@@ -256,7 +260,8 @@ class _Recorrido extends StatelessWidget {
                           key: const Key('btn_finalizar'),
                           style: FilledButton.styleFrom(
                             minimumSize: const Size.fromHeight(52),
-                            backgroundColor: const Color(0xFFB3261E),
+                            backgroundColor: colorPeligro,
+                            foregroundColor: Colors.white,
                           ),
                           onPressed: () => _confirmarFinalizar(context),
                           icon: const Icon(Icons.stop),

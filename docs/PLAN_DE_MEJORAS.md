@@ -19,6 +19,12 @@ Base: *Especificación de requisitos* (19/11/2026), *Documento final* (objetivo,
 | RNF-04 Ubicación solo con recorrido activo y por ruta | ✅ | `modelos_test.dart` + `firestore.rules` |
 | RNF-05 Contraste ≥ 4.5:1 y texto ≥ 14 sp | ✅ | `rol_test.dart` |
 
+**Mejoras adicionales ya implementadas** (24/11/2026):
+
+- **GPS del conductor en segundo plano** (refuerza RF-02): servicio en primer plano en Android y señal cada 15 s; `segundo_plano_test.dart`.
+- **Antigüedad de la señal y botón SOS** (seguridad del trabajador nocturno, refuerza RNF-02): alertas con ubicación al administrador; `emergencia_y_tema_test.dart`.
+- **Modo oscuro** con contraste ≥ 4.5:1 verificado (RNF-05); `emergencia_y_tema_test.dart`.
+
 ### Requisito nuevo propuesto para la especificación
 
 | Código | Función requerida | Criterio de aceptación | Prioridad |

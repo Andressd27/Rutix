@@ -77,6 +77,9 @@ class _MapaRutaState extends State<MapaRuta> {
             TileLayer(
               urlTemplate: 'https://tile.openstreetmap.org/{z}/{x}/{y}.png',
               userAgentPackageName: 'co.edu.uts.rutix',
+              tileBuilder: Theme.of(context).brightness == Brightness.dark
+                  ? darkModeTileBuilder
+                  : null,
             ),
             if (ruta.paradas.length > 1)
               PolylineLayer(polylines: [
@@ -208,7 +211,7 @@ class _BotonMapa extends StatelessWidget {
       padding: const EdgeInsets.only(bottom: 8),
       child: FloatingActionButton.small(
         heroTag: ayuda,
-        backgroundColor: Colors.white,
+        backgroundColor: Theme.of(context).colorScheme.surface,
         foregroundColor: Theme.of(context).colorScheme.primary,
         tooltip: ayuda,
         onPressed: onPressed,
@@ -258,6 +261,7 @@ class _Vehiculo extends StatelessWidget {
           border: Border.all(color: Colors.white, width: 3),
           boxShadow: const [BoxShadow(color: Colors.black38, blurRadius: 8)],
         ),
-        child: const Icon(Icons.directions_bus, color: Colors.white, size: 26),
+        child: Icon(Icons.directions_bus,
+            color: Theme.of(context).colorScheme.onPrimary, size: 26),
       );
 }

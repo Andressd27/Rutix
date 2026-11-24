@@ -1,12 +1,18 @@
+import 'dart:async';
+
 import 'package:material_ui/material_ui.dart';
 
+import '../../core/tema.dart';
 import '../../core/rol.dart';
+import '../../models/alerta.dart';
 import '../../models/recorrido.dart';
 import '../../models/ruta.dart';
 import '../../models/usuario.dart';
 import '../../services/auth_service.dart';
+import '../../services/notificaciones_service.dart';
 import '../../services/repositorio.dart';
 import '../../widgets/comunes.dart';
+import 'alertas_page.dart';
 import 'editor_ruta_page.dart';
 import 'resumen_abordajes.dart';
 import 'vehiculos_page.dart';
@@ -23,12 +29,45 @@ class AdminShell extends StatefulWidget {
 
 class _AdminShellState extends State<AdminShell> {
   int _pestana = 0;
+  List<Alerta>? _alertas;
+  StreamSubscription<List<Alerta>>? _alertasSub;
+  Set<String>? _alertasVistas;
 
   @override
   void initState() {
     super.initState();
     _revisarCodigosQr();
     _revisarCaminos();
+    _escucharAlertas();
+  }
+
+  @override
+  void dispose() {
+    _alertasSub?.cancel();
+    super.dispose();
+  }
+
+  int get _pendientes => _alertas?.where((a) => !a.atendida).length ?? 0;
+
+  /// Escucha las alertas de emergencia y avisa con una notificación cuando
+  /// llega una nueva mientras la app del administrador está abierta.
+  void _escucharAlertas() {
+    NotificacionesService.instancia.pedirPermiso();
+    _alertasSub = Repositorio.alertas().listen((lista) {
+      final vistas = _alertasVistas;
+      if (vistas != null) {
+        for (final a in lista) {
+          if (!a.atendida && !vistas.contains(a.id)) {
+            NotificacionesService.instancia.mostrar(
+              titulo: '🆘 Alerta de emergencia',
+              cuerpo: '${a.nombre} (${a.rol.etiqueta.toLowerCase()}) · ${a.rutaNombre}',
+            );
+          }
+        }
+      }
+      _alertasVistas = {for (final a in lista) a.id};
+      if (mounted) setState(() => _alertas = lista);
+    }, onError: (Object e) => debugPrint('Alertas: $e'));
   }
 
   /// Calcula el camino por calles de las rutas que aún no lo tienen.
@@ -66,7 +105,7 @@ class _AdminShellState extends State<AdminShell> {
 
   @override
   Widget build(BuildContext context) {
-    const titulos = ['Rutas', 'Abordajes', 'Usuarios', 'Perfil'];
+    const titulos = ['Rutas', 'Abordajes', 'Alertas', 'Usuarios', 'Perfil'];
     return Scaffold(
       appBar: BarraRol(usuario: widget.usuario, titulo: titulos[_pestana]),
       body: Column(
@@ -92,6 +131,7 @@ class _AdminShellState extends State<AdminShell> {
                   children: [
                     _Rutas(rutas: rutas),
                     ResumenAbordajes(rutas: rutas),
+                    AlertasPage(admin: widget.usuario, alertas: _alertas),
                     _Usuarios(rutas: rutas),
                     PerfilPage(usuario: widget.usuario),
                   ],
@@ -104,15 +144,24 @@ class _AdminShellState extends State<AdminShell> {
       bottomNavigationBar: NavigationBar(
         selectedIndex: _pestana,
         onDestinationSelected: (i) => setState(() => _pestana = i),
-        destinations: const [
-          NavigationDestination(icon: Icon(Icons.alt_route), label: 'Rutas'),
-          NavigationDestination(
+        destinations: [
+          const NavigationDestination(
+              icon: Icon(Icons.alt_route), label: 'Rutas'),
+          const NavigationDestination(
               icon: Icon(Icons.qr_code_2), label: 'Abordajes'),
           NavigationDestination(
+            icon: Badge(
+              isLabelVisible: _pendientes > 0,
+              label: Text('$_pendientes'),
+              child: const Icon(Icons.sos),
+            ),
+            label: 'Alertas',
+          ),
+          const NavigationDestination(
               icon: Icon(Icons.group_outlined),
               selectedIcon: Icon(Icons.group),
               label: 'Usuarios'),
-          NavigationDestination(
+          const NavigationDestination(
               icon: Icon(Icons.person_outline),
               selectedIcon: Icon(Icons.person),
               label: 'Perfil'),
@@ -171,7 +220,8 @@ class _RutasState extends State<_Rutas> {
               child: const Text('Cancelar')),
           FilledButton(
               style: FilledButton.styleFrom(
-                  backgroundColor: const Color(0xFFB3261E)),
+                  backgroundColor: colorPeligro,
+                  foregroundColor: Colors.white),
               onPressed: () => Navigator.pop(ctx, true),
               child: const Text('Eliminar')),
         ],

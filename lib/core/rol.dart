@@ -7,18 +7,21 @@ enum Rol {
     etiqueta: 'Trabajador',
     descripcion: 'Consulta tu ruta y la llegada del vehículo',
     color: Color(0xFF007A55), // verde · contraste 5.36:1 con blanco
+    colorOscuro: Color(0xFF5FD6A4),
     icono: Icons.badge,
   ),
   conductor(
     etiqueta: 'Conductor',
     descripcion: 'Inicia el recorrido y comparte la ubicación',
     color: Color(0xFF1D4ED8), // azul · contraste 6.70:1 con blanco
+    colorOscuro: Color(0xFF8AB4F8),
     icono: Icons.airline_seat_recline_normal,
   ),
   admin(
     etiqueta: 'Administrador',
     descripcion: 'Gestiona rutas, usuarios y asignaciones',
     color: Color(0xFF6D28D9), // morado · contraste 7.10:1 con blanco
+    colorOscuro: Color(0xFFC4A7FF),
     icono: Icons.admin_panel_settings,
   );
 
@@ -26,12 +29,16 @@ enum Rol {
     required this.etiqueta,
     required this.descripcion,
     required this.color,
+    required this.colorOscuro,
     required this.icono,
   });
 
   final String etiqueta;
   final String descripcion;
   final Color color;
+
+  /// Versión clara del color para el modo oscuro.
+  final Color colorOscuro;
   final IconData icono;
 
   /// Nombre guardado en Firestore (`usuarios/{uid}.rol`).

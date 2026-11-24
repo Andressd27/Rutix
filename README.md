@@ -8,9 +8,9 @@ Cada rol tiene **su propia interfaz, navegación y color**, y una insignia visib
 
 | Rol | Color | Qué ve y qué hace |
 |---|---|---|
-| 🟢 **Trabajador** | Verde `#007A55` | Inicio con el tiempo estimado de llegada · Mapa con el vehículo y su parada · **Mi QR** de abordaje y su ruta · Avisos · Perfil |
-| 🔵 **Conductor** | Azul `#1D4ED8` | Mi recorrido (iniciar con GPS, simular o finalizar) · **Abordaje** (escanear QR y conteo del día) · Mi ruta · Perfil |
-| 🟣 **Administrador** | Morado `#6D28D9` | **Rutas y vehículos** (crear, editar y eliminar; paradas sobre el mapa) con su recorrido en vivo · **Abordajes** ("X de Y" por ruta y fecha) · Usuarios (asignar rol, ruta y parada) · Perfil |
+| 🟢 **Trabajador** | Verde `#007A55` | Inicio con el tiempo estimado de llegada · Mapa con el vehículo y su parada · **Mi QR** de abordaje y su ruta · Avisos · Perfil · botón **SOS** |
+| 🔵 **Conductor** | Azul `#1D4ED8` | Mi recorrido (iniciar con GPS, simular o finalizar) · **Abordaje** (escanear QR y conteo del día) · Mi ruta · Perfil · botón **SOS** |
+| 🟣 **Administrador** | Morado `#6D28D9` | **Rutas y vehículos** (crear, editar y eliminar; paradas sobre el mapa) con su recorrido en vivo · **Abordajes** ("X de Y" por ruta y fecha) · **Alertas** de emergencia · Usuarios (asignar rol, ruta y parada) · Perfil |
 
 - Toda cuenta nueva se registra como **trabajador**. Solo un administrador puede convertirla en conductor o administrador; las reglas de Firestore lo impiden desde cualquier otro lugar.
 - Cada trabajador y cada conductor solo pueden leer **su propia ruta** y su recorrido.
@@ -151,6 +151,27 @@ Al iniciar el recorrido con GPS en Android aparece una **notificación fija "Rut
 4. **Administrador:** pestaña **Abordajes** → cada ruta muestra **"Abordaron X de Y"**, quién subió y a qué hora y quién falta. Se puede cambiar la fecha.
 
 > El código QR se genera cuando el administrador asigna la ruta a un trabajador. A los trabajadores asignados antes de que existiera el QR se les genera **automáticamente** la próxima vez que un administrador abra la app (aparece el aviso *"Se generó el código QR de N trabajadores"*).
+
+## Botón de emergencia (SOS)
+
+El trabajador y el conductor tienen un botón rojo **SOS** en la barra superior, siempre visible y a un toque. Abre tres opciones:
+
+1. **Llamar al 123** (línea nacional de emergencias).
+2. **Llamar a la empresa**, si el administrador configuró el número.
+3. **Avisar a la empresa con mi ubicación:** después de confirmar, envía una alerta con nombre, rol, ruta, hora y ubicación GPS. Se puede enviar una por minuto, para evitar toques repetidos.
+
+El administrador tiene la pestaña **Alertas**, con un contador de pendientes. Mientras tiene la app abierta, recibe una **notificación** por cada alerta nueva. Desde ahí ve la ubicación en un mapa, la marca como **atendida** y configura el teléfono de la empresa. Quien envió la alerta ve en su SOS si ya fue atendida y por quién.
+
+> Las reglas de Firestore impiden enviar alertas a nombre de otra persona o con otro rol. Solo el administrador puede marcarlas como atendidas.
+
+## Modo oscuro
+
+La app sigue automáticamente el modo claro u oscuro del teléfono. En modo oscuro:
+
+- Cada rol usa una versión clara de su color: verde `#5FD6A4`, azul `#8AB4F8` y morado `#C4A7FF`.
+- Las pruebas verifican que el contraste siga siendo ≥ 4.5:1 (RNF-05).
+- La barra superior conserva el color fuerte del rol, así se reconoce igual en los dos modos.
+- El mapa se oscurece para no deslumbrar de noche.
 
 ## Gestión de rutas y vehículos (administrador)
 

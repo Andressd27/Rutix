@@ -8,6 +8,7 @@ import '../models/ruta.dart';
 import '../models/usuario.dart';
 import '../services/auth_service.dart';
 import '../services/conectividad_service.dart';
+import 'emergencia.dart';
 
 /// Igual que [StreamBuilder], pero crea la consulta una sola vez por [clave].
 /// Evita volver a suscribirse a Firestore en cada reconstrucción del widget.
@@ -112,9 +113,16 @@ class _IndicadorSenalState extends State<IndicadorSenal> {
 /// Barra superior pintada con el color del rol y con su distintivo, para que
 /// siempre se sepa si se está usando la app como trabajador, conductor o admin.
 class BarraRol extends StatelessWidget implements PreferredSizeWidget {
-  const BarraRol({super.key, required this.usuario, required this.titulo});
+  const BarraRol(
+      {super.key,
+      required this.usuario,
+      required this.titulo,
+      this.rutaNombre = 'Sin ruta'});
   final Usuario usuario;
   final String titulo;
+
+  /// Ruta del usuario, para la alerta de emergencia.
+  final String rutaNombre;
 
   @override
   Size get preferredSize => const Size.fromHeight(kToolbarHeight);
@@ -124,8 +132,11 @@ class BarraRol extends StatelessWidget implements PreferredSizeWidget {
     return AppBar(
       title: Text(titulo),
       actions: [
+        // El administrador atiende las alertas; los demás pueden enviarlas.
+        if (!usuario.esAdmin)
+          BotonEmergencia(usuario: usuario, rutaNombre: rutaNombre),
         Padding(
-          padding: const EdgeInsets.only(right: 12),
+          padding: const EdgeInsets.only(right: 12, left: 4),
           child: InsigniaRol(rol: usuario.rol, invertida: true),
         ),
       ],
@@ -302,7 +313,9 @@ class ListaParadas extends StatelessWidget {
             contentPadding: EdgeInsets.zero,
             leading: CircleAvatar(
               backgroundColor: i == paradaResaltada ? color : null,
-              foregroundColor: i == paradaResaltada ? Colors.white : null,
+              foregroundColor: i == paradaResaltada
+                  ? Theme.of(context).colorScheme.onPrimary
+                  : null,
               child: Text('${i + 1}'),
             ),
             title: Text(ruta.paradas[i].nombre),

@@ -85,6 +85,8 @@ class _RutixAppState extends State<RutixApp> {
           title: 'Rutix',
           debugShowCheckedModeBanner: false,
           theme: temaPara(usuario?.rol),
+          darkTheme: temaPara(usuario?.rol, brillo: Brightness.dark),
+          themeMode: ThemeMode.system,
           home: inicio,
         );
       },
@@ -132,6 +134,7 @@ class ErrorConfiguracion extends StatelessWidget {
     return MaterialApp(
       debugShowCheckedModeBanner: false,
       theme: temaPara(null),
+      darkTheme: temaPara(null, brillo: Brightness.dark),
       home: Scaffold(
         body: SafeArea(
           child: Padding(
