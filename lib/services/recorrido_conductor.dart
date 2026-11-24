@@ -20,6 +20,11 @@ class RecorridoConductor {
   /// Intervalo mínimo entre escrituras en Firestore (cuida la cuota gratuita).
   static const intervaloEscritura = Duration(seconds: 3);
 
+  /// Aunque el vehículo esté detenido (sin nuevas lecturas del GPS), se vuelve
+  /// a enviar la última posición con esta frecuencia. Así el trabajador puede
+  /// distinguir "detenido" de "sin señal".
+  static const intervaloSenal = Duration(seconds: 15);
+
   final ValueNotifier<FuenteRecorrido> fuente =
       ValueNotifier<FuenteRecorrido>(FuenteRecorrido.ninguna);
   final ValueNotifier<LatLng?> posicion = ValueNotifier<LatLng?>(null);
@@ -31,6 +36,7 @@ class RecorridoConductor {
   DateTime _ultimaEscritura = DateTime.fromMillisecondsSinceEpoch(0);
   LatLng? _pendiente;
   Timer? _envioDiferido;
+  Timer? _senal;
 
   bool get activo => fuente.value != FuenteRecorrido.ninguna;
 
@@ -52,10 +58,7 @@ class RecorridoConductor {
     if (!await _abrir(ruta, conductor, simulado: false)) return false;
     fuente.value = FuenteRecorrido.gps;
     _gpsSub = Geolocator.getPositionStream(
-      locationSettings: const LocationSettings(
-        accuracy: LocationAccuracy.high,
-        distanceFilter: 10,
-      ),
+      locationSettings: ajustesGps(defaultTargetPlatform, web: kIsWeb),
     ).listen(
       (p) => _publicar(LatLng(p.latitude, p.longitude)),
       onError: (Object e) => error.value = 'Error de GPS: $e',
@@ -115,6 +118,14 @@ class RecorridoConductor {
     }
     _rutaId = ruta.id;
     _ultimaEscritura = DateTime.fromMillisecondsSinceEpoch(0);
+    _senal = Timer.periodic(intervaloSenal, (_) {
+      final p = posicion.value;
+      final id = _rutaId;
+      if (p != null && id != null &&
+          DateTime.now().difference(_ultimaEscritura) >= intervaloSenal) {
+        _escribir(id, p);
+      }
+    });
     return true;
   }
 
@@ -153,8 +164,53 @@ class RecorridoConductor {
     _simTimer = null;
     _envioDiferido?.cancel();
     _envioDiferido = null;
+    _senal?.cancel();
+    _senal = null;
     _pendiente = null;
     fuente.value = FuenteRecorrido.ninguna;
     posicion.value = null;
+  }
+}
+
+/// Ajustes del GPS del conductor según la plataforma.
+///
+/// En Android se usa un **servicio en primer plano** (notificación fija
+/// "Recorrido en curso"): como se inicia con la app abierta, Android sigue
+/// entregando la ubicación con la pantalla apagada o con otra app delante,
+/// sin pedir el permiso de "ubicación todo el tiempo".
+/// En iOS se activan las actualizaciones en segundo plano (Info.plist →
+/// UIBackgroundModes: location). En el navegador no hay segundo plano.
+LocationSettings ajustesGps(TargetPlatform plataforma, {required bool web}) {
+  if (web) {
+    return const LocationSettings(
+        accuracy: LocationAccuracy.high, distanceFilter: 10);
+  }
+  switch (plataforma) {
+    case TargetPlatform.android:
+      return AndroidSettings(
+        accuracy: LocationAccuracy.high,
+        distanceFilter: 10,
+        intervalDuration: const Duration(seconds: 3),
+        foregroundNotificationConfig: const ForegroundNotificationConfig(
+          notificationTitle: 'Rutix · Recorrido en curso',
+          notificationText:
+              'Compartiendo tu ubicación con los trabajadores de tu ruta.',
+          notificationChannelName: 'Recorrido en curso',
+          enableWakeLock: true,
+          setOngoing: true,
+        ),
+      );
+    case TargetPlatform.iOS:
+      return AppleSettings(
+        accuracy: LocationAccuracy.high,
+        distanceFilter: 10,
+        activityType: ActivityType.automotiveNavigation,
+        pauseLocationUpdatesAutomatically: false,
+        allowBackgroundLocationUpdates: true,
+        showBackgroundLocationIndicator: true,
+      );
+    default:
+      return const LocationSettings(
+          accuracy: LocationAccuracy.high, distanceFilter: 10);
   }
 }

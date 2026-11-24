@@ -32,6 +32,10 @@
 	<string>Rutix usa tu ubicación para mostrarte en el mapa y calcular la llegada de tu transporte.</string>
 	<key>LSRequiresIPhoneOS</key>
 	<true/>
+	<key>UIBackgroundModes</key>
+	<array>
+		<string>location</string>
+	</array>
 	<key>UIApplicationSceneManifest</key>
 	<dict>
 		<key>UIApplicationSupportsMultipleScenes</key>

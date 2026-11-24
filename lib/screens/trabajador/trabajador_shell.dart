@@ -286,6 +286,10 @@ class _Inicio extends StatelessWidget {
                       Text(e.activo
                           ? 'El vehículo aún no envía su ubicación.'
                           : 'Tu ruta todavía no ha iniciado el recorrido.'),
+                    if (e.activo) ...[
+                      const SizedBox(height: 12),
+                      IndicadorSenal(ultima: seg.recorrido.value?.actualizado),
+                    ],
                     const SizedBox(height: 16),
                     FilledButton.icon(
                       style: FilledButton.styleFrom(
@@ -344,6 +348,12 @@ class _Mapa extends StatelessWidget {
                 subtitle: Text(e.metros != null
                     ? 'A ${e.metros!.round()} m de tu parada por la vía · ${ruta.placa}'
                     : '${ruta.nombre} · ${ruta.placa}'),
+                trailing: e.activo
+                    ? ConstrainedBox(
+                        constraints: const BoxConstraints(maxWidth: 170),
+                        child: IndicadorSenal(ultima: r?.actualizado),
+                      )
+                    : null,
               ),
             ),
           ],

@@ -1,3 +1,4 @@
+import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:latlong2/latlong.dart';
 import 'package:material_ui/material_ui.dart';
 
@@ -213,6 +214,25 @@ class _Recorrido extends StatelessWidget {
                         ],
                       ),
                       _EstadoServidor(rutaId: ruta.id),
+                      if (enCurso && _rc.fuente.value == FuenteRecorrido.gps)
+                        Padding(
+                          padding: const EdgeInsets.only(top: 6),
+                          child: Row(
+                            children: [
+                              const Icon(Icons.lock_clock, size: 18),
+                              const SizedBox(width: 6),
+                              Expanded(
+                                child: Text(
+                                  kIsWeb
+                                      ? 'En el navegador, mantén esta pestaña abierta y visible.'
+                                      : 'Puedes bloquear la pantalla: Rutix sigue compartiendo '
+                                          'tu ubicación (verás una notificación fija).',
+                                  style: const TextStyle(fontSize: 14),
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
                       const SizedBox(height: 8),
                       if (!enCurso) ...[
                         FilledButton.icon(

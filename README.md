@@ -128,6 +128,17 @@ flutter run
 
 > **Sobre las notificaciones:** se generan en el teléfono del trabajador mientras la app está abierta o en segundo plano reciente. Así no hace falta servidor ni el plan de pago *Blaze*. Si el sistema cierra la app, el aviso no llega hasta que se vuelva a abrir.
 
+### GPS del conductor con la pantalla apagada (RF-02)
+
+Al iniciar el recorrido con GPS en Android aparece una **notificación fija "Rutix · Recorrido en curso"**. Es un servicio en primer plano: el conductor puede bloquear la pantalla o usar otra app y la ubicación se sigue enviando. No se pide el permiso de "ubicación todo el tiempo", porque no hace falta si el servicio se inicia con la app abierta.
+
+- Aunque el vehículo esté detenido, la posición se reenvía cada **15 s**.
+- El trabajador ve la antigüedad del dato: **verde** hasta 45 s, **amarillo** hasta 2 min y **rojo** *"Sin señal del vehículo hace N min"* después de eso (RNF-02).
+- **Teléfonos Xiaomi, Redmi, POCO, Huawei, Samsung:** su ahorro de batería puede cerrar apps en segundo plano. En el teléfono del conductor: *Ajustes → Apps → Rutix → Ahorro de batería → **Sin restricciones*** y activar **Inicio automático**.
+- En el navegador no existe el segundo plano: la pestaña debe quedar abierta y visible.
+
+**Prueba:** inicia el recorrido con GPS, bloquea el teléfono 5 minutos y revisa en otro dispositivo, como trabajador, que la señal siga en verde.
+
 ### Prueba del QR de abordaje (RF-05 y RF-06)
 
 1. **Trabajador:** pestaña **Mi QR**. Muestra su código único y el estado *"Hoy todavía no registras abordaje"*.

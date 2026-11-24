@@ -1,6 +1,9 @@
+import 'dart:async';
+
 import 'package:material_ui/material_ui.dart';
 
 import '../core/rol.dart';
+import '../core/senal.dart';
 import '../models/ruta.dart';
 import '../models/usuario.dart';
 import '../services/auth_service.dart';
@@ -36,6 +39,74 @@ class _StreamCacheadoState<T> extends State<StreamCacheado<T>> {
   @override
   Widget build(BuildContext context) =>
       StreamBuilder<T>(stream: _stream, builder: widget.builder);
+}
+
+/// Indicador de qué tan reciente es la posición del vehículo. Se actualiza
+/// solo cada 5 s para que el contador avance aunque no lleguen datos nuevos.
+class IndicadorSenal extends StatefulWidget {
+  const IndicadorSenal({super.key, required this.ultima});
+  final DateTime? ultima;
+
+  @override
+  State<IndicadorSenal> createState() => _IndicadorSenalState();
+}
+
+class _IndicadorSenalState extends State<IndicadorSenal> {
+  late final Timer _reloj;
+
+  @override
+  void initState() {
+    super.initState();
+    _reloj = Timer.periodic(
+        const Duration(seconds: 5), (_) => setState(() {}));
+  }
+
+  @override
+  void dispose() {
+    _reloj.cancel();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final ultima = widget.ultima;
+    if (ultima == null) return const SizedBox.shrink();
+    final e = estadoSenal(DateTime.now().difference(ultima));
+    final (Color fondo, Color texto, IconData icono) = switch (e.nivel) {
+      NivelSenal.buena => (
+          const Color(0xFFDDF3E8),
+          const Color(0xFF00573D),
+          Icons.wifi_tethering
+        ),
+      NivelSenal.demorada => (
+          const Color(0xFFFFF3C4),
+          const Color(0xFF5C4400),
+          Icons.wifi_tethering_error
+        ),
+      NivelSenal.perdida => (
+          const Color(0xFFFCE8E6),
+          const Color(0xFF8C1D18),
+          Icons.wifi_tethering_off
+        ),
+    };
+    return Container(
+      key: Key('senal_${e.nivel.name}'),
+      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+      decoration: BoxDecoration(
+          color: fondo, borderRadius: BorderRadius.circular(8)),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Icon(icono, size: 18, color: texto),
+          const SizedBox(width: 6),
+          Flexible(
+            child: Text(e.texto,
+                style: TextStyle(color: texto, fontSize: 14)),
+          ),
+        ],
+      ),
+    );
+  }
 }
 
 /// Barra superior pintada con el color del rol y con su distintivo, para que
