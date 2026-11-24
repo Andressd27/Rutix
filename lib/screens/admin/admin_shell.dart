@@ -7,7 +7,9 @@ import '../../models/usuario.dart';
 import '../../services/auth_service.dart';
 import '../../services/repositorio.dart';
 import '../../widgets/comunes.dart';
+import 'editor_ruta_page.dart';
 import 'resumen_abordajes.dart';
+import 'vehiculos_page.dart';
 
 /// Interfaz del **administrador** (color morado): rutas, recorridos en vivo y
 /// asignación de roles, rutas y paradas a los usuarios.
@@ -120,59 +122,176 @@ class _AdminShellState extends State<AdminShell> {
   }
 }
 
-class _Rutas extends StatelessWidget {
+/// Pestaña Rutas: gestión de rutas y de vehículos (RF-07).
+class _Rutas extends StatefulWidget {
   const _Rutas({required this.rutas});
   final List<Ruta> rutas;
 
-  Future<void> _cargarEjemplo(BuildContext context) async {
+  @override
+  State<_Rutas> createState() => _RutasState();
+}
+
+class _RutasState extends State<_Rutas> {
+  bool _vehiculos = false;
+
+  Future<void> _cargarEjemplo() async {
     try {
       await Repositorio.cargarRutasEjemplo();
     } catch (e) {
-      if (context.mounted) {
+      if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
             SnackBar(content: Text('No se pudieron crear: $e')));
       }
     }
   }
 
+  Future<void> _editar([Ruta? ruta]) async {
+    final guardo = await Navigator.push<bool>(
+      context,
+      MaterialPageRoute(builder: (_) => EditorRutaPage(ruta: ruta)),
+    );
+    if (guardo == true && mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+          content: Text(ruta == null ? 'Ruta creada.' : 'Ruta actualizada.')));
+    }
+  }
+
+  Future<void> _eliminar(Ruta ruta) async {
+    final si = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: Text('¿Eliminar ${ruta.nombre}?'),
+        content: const Text(
+            'Los trabajadores y el conductor asignados quedarán sin ruta y '
+            'sus códigos QR dejarán de servir. El historial de abordajes se '
+            'conserva. Esta acción no se puede deshacer.'),
+        actions: [
+          TextButton(
+              onPressed: () => Navigator.pop(ctx, false),
+              child: const Text('Cancelar')),
+          FilledButton(
+              style: FilledButton.styleFrom(
+                  backgroundColor: const Color(0xFFB3261E)),
+              onPressed: () => Navigator.pop(ctx, true),
+              child: const Text('Eliminar')),
+        ],
+      ),
+    );
+    if (si != true) return;
+    try {
+      await Repositorio.eliminarRuta(ruta);
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(content: Text('No se pudo eliminar: $e')));
+      }
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
-    if (rutas.isEmpty) {
-      return Center(
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            const MensajeVacio(
-              icono: Icons.alt_route,
-              titulo: 'Todavía no hay rutas',
-              detalle: 'Carga las tres rutas de ejemplo para empezar a probar.',
-            ),
-            FilledButton.icon(
-              onPressed: () => _cargarEjemplo(context),
-              icon: const Icon(Icons.download),
-              label: const Text('Cargar rutas de ejemplo'),
-            ),
-          ],
-        ),
-      );
-    }
-    return ListView(
-      padding: const EdgeInsets.all(16),
+    final rutas = widget.rutas;
+    return Column(
       children: [
-        for (final r in rutas)
-          Card(
-            child: ExpansionTile(
-              leading: _EstadoRecorrido(rutaId: r.id),
-              title: Text('${r.nombre} · ${r.turno}',
-                  style: const TextStyle(fontWeight: FontWeight.w700)),
-              subtitle: Text('Conductor: ${r.conductorNombre} · ${r.placa}'),
-              childrenPadding: const EdgeInsets.symmetric(horizontal: 16),
-              children: [
-                _InfoCamino(ruta: r),
-                ListaParadas(ruta: r),
-              ],
-            ),
+        Padding(
+          padding: const EdgeInsets.fromLTRB(16, 12, 16, 4),
+          child: Row(
+            children: [
+              Expanded(
+                child: SegmentedButton<bool>(
+                  segments: const [
+                    ButtonSegment(
+                        value: false,
+                        icon: Icon(Icons.alt_route),
+                        label: Text('Rutas')),
+                    ButtonSegment(
+                        value: true,
+                        icon: Icon(Icons.directions_bus),
+                        label: Text('Vehículos')),
+                  ],
+                  selected: {_vehiculos},
+                  onSelectionChanged: (s) =>
+                      setState(() => _vehiculos = s.first),
+                ),
+              ),
+              const SizedBox(width: 8),
+              IconButton.filled(
+                key: const Key('btn_nuevo'),
+                tooltip: _vehiculos ? 'Nuevo vehículo' : 'Nueva ruta',
+                icon: const Icon(Icons.add),
+                onPressed: () => _vehiculos
+                    ? mostrarDialogoVehiculo(context, rutas: rutas)
+                    : _editar(),
+              ),
+            ],
           ),
+        ),
+        Expanded(
+          child: _vehiculos
+              ? VehiculosPage(rutas: rutas)
+              : rutas.isEmpty
+                  ? Center(
+                      child: SingleChildScrollView(
+                        child: Column(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            const MensajeVacio(
+                              icono: Icons.alt_route,
+                              titulo: 'Todavía no hay rutas',
+                              detalle: 'Crea una con el botón + o carga las '
+                                  'tres rutas de ejemplo.',
+                            ),
+                            FilledButton.icon(
+                              onPressed: _cargarEjemplo,
+                              icon: const Icon(Icons.download),
+                              label: const Text('Cargar rutas de ejemplo'),
+                            ),
+                          ],
+                        ),
+                      ),
+                    )
+                  : ListView(
+                      padding: const EdgeInsets.fromLTRB(16, 8, 16, 16),
+                      children: [
+                        for (final r in rutas)
+                          Card(
+                            child: ExpansionTile(
+                              leading: _EstadoRecorrido(rutaId: r.id),
+                              title: Text('${r.nombre} · ${r.turno}',
+                                  style: const TextStyle(
+                                      fontWeight: FontWeight.w700)),
+                              subtitle: Text(
+                                  'Conductor: ${r.conductorNombre} · '
+                                  '${r.placa.isEmpty ? 'Sin vehículo' : r.placa} · '
+                                  '${r.paradas.length} paradas'),
+                              childrenPadding:
+                                  const EdgeInsets.symmetric(horizontal: 16),
+                              children: [
+                                _InfoCamino(ruta: r),
+                                ListaParadas(ruta: r),
+                                Row(
+                                  mainAxisAlignment: MainAxisAlignment.end,
+                                  children: [
+                                    TextButton.icon(
+                                      onPressed: () => _eliminar(r),
+                                      icon: const Icon(Icons.delete_outline),
+                                      label: const Text('Eliminar'),
+                                    ),
+                                    const SizedBox(width: 8),
+                                    FilledButton.icon(
+                                      onPressed: () => _editar(r),
+                                      icon: const Icon(Icons.edit),
+                                      label: const Text('Editar'),
+                                    ),
+                                  ],
+                                ),
+                                const SizedBox(height: 8),
+                              ],
+                            ),
+                          ),
+                      ],
+                    ),
+        ),
       ],
     );
   }

@@ -10,7 +10,7 @@ Cada rol tiene **su propia interfaz, navegación y color**, y una insignia visib
 |---|---|---|
 | 🟢 **Trabajador** | Verde `#007A55` | Inicio con el tiempo estimado de llegada · Mapa con el vehículo y su parada · **Mi QR** de abordaje y su ruta · Avisos · Perfil |
 | 🔵 **Conductor** | Azul `#1D4ED8` | Mi recorrido (iniciar con GPS, simular o finalizar) · **Abordaje** (escanear QR y conteo del día) · Mi ruta · Perfil |
-| 🟣 **Administrador** | Morado `#6D28D9` | Rutas con su recorrido en vivo · **Abordajes** ("X de Y" por ruta y fecha) · Usuarios (asignar rol, ruta y parada) · Perfil |
+| 🟣 **Administrador** | Morado `#6D28D9` | **Rutas y vehículos** (crear, editar y eliminar; paradas sobre el mapa) con su recorrido en vivo · **Abordajes** ("X de Y" por ruta y fecha) · Usuarios (asignar rol, ruta y parada) · Perfil |
 
 - Toda cuenta nueva se registra como **trabajador**. Solo un administrador puede convertirla en conductor o administrador; las reglas de Firestore lo impiden desde cualquier otro lugar.
 - Cada trabajador y cada conductor solo pueden leer **su propia ruta** y su recorrido.
@@ -141,6 +141,15 @@ flutter run
 
 > El código QR se genera cuando el administrador asigna la ruta a un trabajador. A los trabajadores asignados antes de que existiera el QR se les genera **automáticamente** la próxima vez que un administrador abra la app (aparece el aviso *"Se generó el código QR de N trabajadores"*).
 
+## Gestión de rutas y vehículos (administrador)
+
+En la pestaña **Rutas** el administrador cambia entre **Rutas** y **Vehículos** y usa el botón **+** para crear.
+
+- **Rutas:** nombre, turno (Mañana, Tarde o Noche) y vehículo. Las paradas se **agregan tocando el mapa** en el orden del recorrido. Cada parada tiene nombre y hora (selector de hora), se **reordena arrastrando** (≡), se **reubica** (✥ y luego tocar el mapa) o se elimina. Al guardar se calcula el trazado por calles.
+- **Si se reordenan o eliminan paradas**, cada trabajador conserva su misma parada; si la suya se eliminó, queda sin parada para que el admin le asigne otra.
+- **Eliminar una ruta** deja sin ruta a sus trabajadores y a su conductor; el historial de abordajes se conserva.
+- **Vehículos:** placa (formato `ABC-123`, no se repite), capacidad (1 a 80) y descripción. Un vehículo que usa alguna ruta no se puede eliminar.
+
 ## Trazado por calles (OSRM)
 
 El recorrido no se dibuja en línea recta entre paradas: se usa el camino real por calles que calcula [OSRM](https://project-osrm.org), con los mismos datos de OpenStreetMap que el mapa.
@@ -163,6 +172,7 @@ rutas/{rutaId}          nombre, turno, placa, conductorUid, conductorNombre, par
   ├─ pasajeros/{uid}     nombre, paradaIdx, token            (asignados; base del QR y de "X de Y")
   └─ abordajes/{fecha}_{uid}  uid, nombre, token, fecha, hora, conductorUid, conductorNombre
 recorridos/{rutaId}     activo, conductorUid, conductorNombre, ubicacion (GeoPoint), inicio, actualizado, fin, simulado
+vehiculos/{placa}       capacidad, descripcion                              (solo los ve el administrador)
 ```
 
 ## Despliegue
@@ -199,7 +209,7 @@ flutter test
 flutter analyze
 ```
 
-Las pruebas de `test/` están ligadas a los requisitos: roles y colores (RF-01), cálculo del tiempo estimado (RF-03), aviso único a ≤ 1 km (RF-04), login sin credenciales visibles (RNF-03), estado del recorrido (RNF-04), validación del QR (RF-05), resumen "3 de 5" (RF-06) y contraste ≥ 4.5:1 y texto ≥ 14 sp (RNF-05).
+Las pruebas de `test/` están ligadas a los requisitos: roles y colores (RF-01), cálculo del tiempo estimado (RF-03), aviso único a ≤ 1 km (RF-04), login sin credenciales visibles (RNF-03), estado del recorrido (RNF-04), validación del QR (RF-05), resumen "3 de 5" (RF-06), validación de rutas, horas, placas y conservación de la parada de cada trabajador al editar una ruta (RF-07) y contraste ≥ 4.5:1 y texto ≥ 14 sp (RNF-05).
 
 ## Estructura
 

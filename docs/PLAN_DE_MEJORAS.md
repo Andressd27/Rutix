@@ -2,7 +2,30 @@
 
 Base: *Especificación de requisitos* (19/11/2026), *Documento final* (objetivo, funcionamiento, Gantt) y revisión del código actual (`lib/`, 21/11/2026).
 
-## 1. Diagnóstico: requisitos frente a la implementación actual
+## 0. Estado actual (23/11/2026)
+
+| Req. | Estado | Evidencia automática (`test/`) |
+|---|---|---|
+| RF-01 Login y 3 roles con color propio | ✅ | `rol_test.dart`, `widgets_test.dart` |
+| RF-02 Conductor comparte GPS en el servidor | ✅ | `modelos_test.dart` + línea "Servidor: …" en la app |
+| RF-03 Vehículo en el mapa y ETA que disminuye | ✅ por la vía (OSRM) | `geo_test.dart`, `camino_test.dart` |
+| RF-04 Aviso único a ≤ 1 km | ✅ notificación local, sin costo | `alerta_proximidad_test.dart` |
+| RF-05 QR único y abordaje sin duplicados | ✅ | `abordaje_test.dart` |
+| RF-06 Resumen "X de Y" por ruta y fecha | ✅ | `abordaje_test.dart` ("3 de 5") |
+| **RF-07** Gestión de rutas, paradas y vehículos | ✅ (nuevo) | `gestion_rutas_test.dart` |
+| RNF-01 Mapa en ≤ 3 toques | ✅ 1 toque | Verificación manual |
+| RNF-02 Aviso sin conexión y reconexión | ✅ | Verificación manual (modo avión) |
+| RNF-03 Contraseñas cifradas, HTTPS, acceso por rol | ✅ Firebase Auth + reglas | `widgets_test.dart` + `firestore.rules` |
+| RNF-04 Ubicación solo con recorrido activo y por ruta | ✅ | `modelos_test.dart` + `firestore.rules` |
+| RNF-05 Contraste ≥ 4.5:1 y texto ≥ 14 sp | ✅ | `rol_test.dart` |
+
+### Requisito nuevo propuesto para la especificación
+
+| Código | Función requerida | Criterio de aceptación | Prioridad |
+|---|---|---|---|
+| RF-07 | El sistema debe permitir al administrador crear, editar y eliminar rutas (nombre, turno, vehículo y paradas con nombre, hora y ubicación en el mapa) y vehículos (placa y capacidad). | Se crea una ruta de 3 paradas solo desde la app y un trabajador asignado la ve con su trazado. Se reordena una parada y cada trabajador conserva la suya. Una ruta con menos de 2 paradas o una placa con formato inválido no se pueden guardar. | Media |
+
+## 1. Diagnóstico inicial (21/11/2026): requisitos frente a la implementación de entonces
 
 | Req. | Qué pide | Estado actual | Cumple |
 |---|---|---|---|

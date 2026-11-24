@@ -2,12 +2,14 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:latlong2/latlong.dart';
 
 import '../core/abordaje.dart';
+import '../core/gestion_rutas.dart';
 import '../core/rol.dart';
 import '../data/datos_ejemplo.dart';
 import '../models/abordaje.dart';
 import '../models/recorrido.dart';
 import '../models/ruta.dart';
 import '../models/usuario.dart';
+import '../models/vehiculo.dart';
 import 'osrm_service.dart';
 
 /// Acceso a Firestore. Colecciones:
@@ -42,6 +44,117 @@ class Repositorio {
     await lote.commit();
     await completarCaminos();
   }
+
+  /// Crea o edita una ruta (RF-07, solo admin). Devuelve su id.
+  ///
+  /// [origen] dice, para cada parada nueva, qué posición tenía antes (o `null`
+  /// si es nueva). Con eso se corrige la parada de los trabajadores asignados
+  /// cuando se reordenan o eliminan paradas. Si cambió el recorrido, se borra
+  /// el camino por calles anterior y se recalcula con OSRM.
+  static Future<String> guardarRuta({
+    Ruta? anterior,
+    required String nombre,
+    required String turno,
+    required String placa,
+    required List<Parada> paradas,
+    required List<int?> origen,
+  }) async {
+    final ref = anterior == null ? _rutas.doc() : _rutas.doc(anterior.id);
+    List<(double, double)> coords(List<Parada> ps) =>
+        [for (final p in ps) (p.punto.latitude, p.punto.longitude)];
+    final cambio = anterior == null ||
+        cambioElRecorrido(coords(anterior.paradas), coords(paradas));
+
+    final lote = _db.batch();
+    lote.set(
+      ref,
+      {
+        'nombre': nombre.trim(),
+        'turno': turno,
+        'placa': placa,
+        'paradas': paradas.map((p) => p.aMapa()).toList(),
+        if (anterior == null) ...{
+          'conductorUid': null,
+          'conductorNombre': 'Sin asignar',
+        },
+        if (cambio) ...{
+          'caminoPolilinea': null,
+          'distanciaMetros': null,
+          'duracionSegundos': null,
+        },
+      },
+      SetOptions(merge: true),
+    );
+
+    // Los trabajadores guardan su parada por posición: se traduce a la nueva.
+    if (anterior != null) {
+      final pasajeros = await _pasajeros(anterior.id)
+          .get(const GetOptions(source: Source.server));
+      for (final d in pasajeros.docs) {
+        final antes = (d.data()['paradaIdx'] as num?)?.toInt();
+        final despues = nuevaPosicion(origen, antes);
+        if (despues != antes) {
+          lote.update(d.reference, {'paradaIdx': despues});
+          lote.update(_usuarios.doc(d.id), {'paradaIdx': despues});
+        }
+      }
+    }
+    await lote.commit();
+
+    if (cambio && paradas.length >= 2) {
+      try {
+        await calcularCamino(Ruta(
+          id: ref.id,
+          nombre: nombre,
+          turno: turno,
+          placa: placa,
+          paradas: paradas,
+        ));
+      } catch (_) {
+        // Sin conexión u OSRM caído: queda con líneas rectas y se reintenta
+        // la próxima vez que el admin abra la app.
+      }
+    }
+    return ref.id;
+  }
+
+  /// Elimina una ruta (solo admin): sus trabajadores y su conductor quedan sin
+  /// ruta y se borra su recorrido en vivo. El historial de abordajes se conserva.
+  static Future<void> eliminarRuta(Ruta ruta) async {
+    final pasajeros =
+        await _pasajeros(ruta.id).get(const GetOptions(source: Source.server));
+    final lote = _db.batch();
+    for (final d in pasajeros.docs) {
+      lote.update(_usuarios.doc(d.id),
+          {'rutaId': null, 'paradaIdx': null, 'codigoQr': null});
+      lote.delete(d.reference);
+    }
+    if (ruta.conductorUid != null) {
+      lote.update(_usuarios.doc(ruta.conductorUid), {'rutaId': null});
+    }
+    lote.delete(_recorridos.doc(ruta.id));
+    lote.delete(_rutas.doc(ruta.id));
+    await lote.commit();
+  }
+
+  // ---------------- Vehículos (RF-07) ----------------
+
+  static CollectionReference<Map<String, dynamic>> get _vehiculos =>
+      _db.collection('vehiculos');
+
+  static Stream<List<Vehiculo>> vehiculos() => _vehiculos.snapshots().map((q) =>
+      q.docs.map((d) => Vehiculo.desdeMapa(d.id, d.data())).toList()
+        ..sort((a, b) => a.placa.compareTo(b.placa)));
+
+  /// Crea o actualiza un vehículo. La placa es su identificador.
+  static Future<void> guardarVehiculo(Vehiculo v) =>
+      _vehiculos.doc(normalizarPlaca(v.placa)).set(v.aMapa());
+
+  static Future<bool> existeVehiculo(String placa) async =>
+      (await _vehiculos.doc(normalizarPlaca(placa)).get()).exists;
+
+  static Future<void> eliminarVehiculo(String placa) =>
+      _vehiculos.doc(placa).delete();
 
   // ---------------- Camino por calles (OSRM) ----------------
 
